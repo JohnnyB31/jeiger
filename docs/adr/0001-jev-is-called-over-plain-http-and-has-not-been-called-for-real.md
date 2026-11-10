@@ -1,5 +1,7 @@
 # Jev is called over plain HTTP, and has not yet been called for real
 
+**Update, later on 2026-11-10:** Jeiger has since been run by hand with a real key, and the request format below was accepted. The title and the text are kept as written at the time. Still true: no automated test calls the real Jev.
+
 Jeiger was built on 2026-11-10 without a TypeSafe API key, from Jev's documentation alone (`docs.typesafe.ai/images.md`, `primitives/box.md`, `api/system-one.md`). So the one module that talks to Jev (`src/server/judge.ts`) does it the way the documentation spells out byte for byte: a JSON body with base64 pictures, sent with `fetch`. Everything is tested against a Fake Jev that enforces the documented request rules, and the real API has only been reached far enough to see it refuse a request without a key.
 
 ## Considered options
