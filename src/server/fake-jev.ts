@@ -52,7 +52,11 @@ const MAX_SIDE = 1568;
 const MAX_FILE_BYTES = 16 * 1024 * 1024;
 const MAX_BODY_BYTES = 32 * 1024 * 1024;
 
-export async function startFakeJev(options: { answer?: () => Reading } = {}): Promise<FakeJev> {
+/**
+ * `answerAfterMs` is how long an accepted request takes to be answered, as a
+ * model's thinking time would: 0 (the default) answers at once.
+ */
+export async function startFakeJev(options: { answer?: () => Reading; answerAfterMs?: number } = {}): Promise<FakeJev> {
     let answer = options.answer ?? (() => wandering(Date.now()));
     let failWith: number | null = null;
 
@@ -80,6 +84,7 @@ export async function startFakeJev(options: { answer?: () => Reading } = {}): Pr
             const asked = accept(request.headers, Buffer.concat(chunks).toString("utf8"));
             fake.requests.push(asked);
 
+            if (options.answerAfterMs) await new Promise((resolve) => setTimeout(resolve, options.answerAfterMs));
             const reading = answer();
             const answers: Record<string, unknown> = {};
             for (const [name, question] of Object.entries(asked.questions)) {

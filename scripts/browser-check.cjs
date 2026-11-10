@@ -19,8 +19,7 @@ const URL = `http://localhost:${PORT}/`;
 
 async function main() {
     const server = spawn(process.execPath, [join(__dirname, "../src/server/main.ts"), "--fake-jev"], {
-        // Faster than the default one Frame a second, so the made-up Target is caught in every Phase within the minute.
-        env: { ...process.env, PORT: String(PORT), JEIGER_FRAME_GAP_MS: "150" },
+        env: { ...process.env, PORT: String(PORT) },
         stdio: ["ignore", "pipe", "inherit"],
     });
     await new Promise((resolve) => server.stdout.once("data", resolve));
@@ -35,6 +34,26 @@ async function main() {
             if (message.type() === "error" && !message.text().startsWith("Failed to load resource")) problems.push(`console: ${message.text()}`);
         });
         page.on("response", (response) => response.status() >= 500 && problems.push(`HTTP ${response.status()} ${response.url()}`));
+
+        // The pace of the Frames: how many are unanswered at once, and how soon each follows the last one's answer.
+        const isFrame = (request) => request.url().endsWith("/readings");
+        let unanswered = 0;
+        let mostUnanswered = 0;
+        let answeredAt = null;
+        const waits = [];
+        page.on("request", (request) => {
+            if (!isFrame(request)) return;
+            unanswered += 1;
+            mostUnanswered = Math.max(mostUnanswered, unanswered);
+            if (answeredAt !== null) waits.push(Date.now() - answeredAt);
+        });
+        const answered = (request) => {
+            if (!isFrame(request)) return;
+            unanswered -= 1;
+            answeredAt = Date.now();
+        };
+        page.on("requestfinished", answered);
+        page.on("requestfailed", answered);
         const hunt = () => page.evaluate(() => ({
             phase: document.documentElement.dataset.phase,
             readings: Number(document.documentElement.dataset.readings ?? 0),
@@ -70,6 +89,12 @@ async function main() {
         check(!boxWhileCold, "no box is shown while the Hunt is cold");
         check(!lockedWithoutBox, "the box is shown while the Hunt is locked");
         check(phases.size === 4, `the Hunt passed through cold, warm, hot and locked (saw: ${[...phases].join(", ")})`);
+
+        // Frame after Frame: one at a time, each sent as soon as the last is answered.
+        waits.sort((a, b) => a - b);
+        const usualWait = waits[Math.floor(waits.length / 2)];
+        check(mostUnanswered === 1, `a Frame is sent only when the last one is answered (most unanswered at once: ${mostUnanswered})`);
+        check(waits.length > 20 && usualWait < 150, `the next Frame follows its answer at once (usually ${usualWait} ms later, over ${waits.length} Frames)`);
 
         // Stop ends it: no more Readings, and the counter goes cold.
         await page.click("#hunt");

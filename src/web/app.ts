@@ -2,8 +2,9 @@
  * The page: camera in, Clicks out.
  *
  * Three loops run while a Hunt is on, each at its own pace:
- *   - reading: grab a Frame, send it, fold the Reading into `tracked`. One
- *     request at a time, one per Frame gap (a second by default).
+ *   - reading: grab a Frame, send it, wait for the Reading, fold it into
+ *     `tracked`, and only then grab the next Frame. One request at a time,
+ *     as fast as the Judge answers.
  *   - sound: every few milliseconds, decide from the current Heat whether a
  *     Click falls now. It never waits for a Reading.
  *   - drawing: every animation frame, the needle, the box and the readout.
@@ -18,8 +19,9 @@ import { type Box, isBelieved, type Reading, settle, track, type Tracked, untrac
 
 const FRAME_SHORT_SIDE = 320;
 const EXEMPLAR_SHORT_SIDE = 512;
-/** The longest the page waits between two Frames while it backs off from a busy Judge. */
-const MAX_GAP_MS = 8000;
+/** How long the page waits before the next Frame after a busy Judge: this at first, doubling up to the longest. */
+const FIRST_BACK_OFF_MS = 500;
+const LONGEST_BACK_OFF_MS = 8000;
 const SOUND_TICK_MS = 8;
 const CUE_EVERY_MS = 1600;
 
@@ -38,7 +40,7 @@ const voiceSwitch = $<HTMLInputElement>("voice");
 const mirrorSwitch = $<HTMLInputElement>("mirror");
 const lamp = $("lamp");
 
-/** How the server is set up: {fakeJev, budgetUsd (null for no Budget), frameGapMs, maxWords}. */
+/** How the server is set up: {fakeJev, budgetUsd (null for no Budget), maxWords}. */
 const config = await (await fetch("/api/config")).json();
 
 function dollars(amount: number, decimals: number): string {
@@ -193,13 +195,13 @@ function showExemplar(): void {
 // ─── The reading loop ───────────────────────────────────────────────────────
 
 async function readLoop(id: string): Promise<void> {
-    // The server sends the Judge one Frame per Frame gap and makes a sooner one wait, so the page keeps the same pace.
-    const leastGap: number = config.frameGapMs;
-    let gap = leastGap;
+    // How long to wait before the next Frame. Nothing while the Judge answers; longer and longer while it is busy.
+    let backOff = 0;
+    const backOffMore = () => Math.min(LONGEST_BACK_OFF_MS, Math.max(FIRST_BACK_OFF_MS, backOff * 2));
     let lastReadingAt: number | null = null;
 
     while (huntId === id) {
-        const startedAt = performance.now();
+        // Taken only now that the last Frame is answered, so it is the newest picture the camera has.
         let frame: Blob;
         try {
             frame = await jpegOf(camera, camera.videoWidth, camera.videoHeight, FRAME_SHORT_SIDE, 0.7);
@@ -220,10 +222,10 @@ async function readLoop(id: string): Promise<void> {
                 lastReadingAt = now;
                 if (!config.fakeJev) $("spent").textContent = dollars(body.spent.usd, 5);
                 readingsTaken += 1;
-                gap = leastGap;
+                backOff = 0;
                 showStatus("");
             } else if (response.status === 503) {
-                gap = Math.min(MAX_GAP_MS, gap * 2);
+                backOff = backOffMore();
                 showStatus(body.error.message);
             } else {
                 return stop(body.error.message);
@@ -231,10 +233,10 @@ async function readLoop(id: string): Promise<void> {
         } catch {
             // The request failed or its answer was not JSON: either way the server is not there.
             if (huntId !== id) return;
-            gap = Math.min(MAX_GAP_MS, gap * 2);
+            backOff = backOffMore();
             showStatus("Lost the connection to Jeiger. Trying again.");
         }
-        await new Promise((resolve) => setTimeout(resolve, Math.max(0, gap - (performance.now() - startedAt))));
+        if (backOff > 0) await new Promise((resolve) => setTimeout(resolve, backOff));
     }
 }
 

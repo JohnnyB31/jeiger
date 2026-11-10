@@ -5,7 +5,6 @@
  *   --fake-jev          use the Fake Jev: no key, no cost, a made-up Target.
  *   PORT                default 4747
  *   JEIGER_BUDGET_USD   the Budget, default 0.25
- *   JEIGER_FRAME_GAP_MS the least time between two requests to Jev, default 1000
  *   JEV_MODEL           default jev-1.14.0
  */
 import { createServer } from "node:http";
@@ -27,18 +26,13 @@ if (!Number.isFinite(budgetUsd) || budgetUsd < 0) {
     process.exit(1);
 }
 
-// One request a second: Jev limits how many an account may send, and answers 429 beyond that.
-const frameGapMs = Number(process.env.JEIGER_FRAME_GAP_MS ?? 1000);
-if (!Number.isFinite(frameGapMs) || frameGapMs < 0) {
-    console.error("JEIGER_FRAME_GAP_MS must be a number of milliseconds, such as 1000.");
-    process.exit(1);
-}
-
+// The page sends a Frame only when the last one is answered, so the Fake Jev takes
+// about as long as a model would: answering at once would make the demo race.
 const judge = fakeJev
-    ? jevJudge({ apiKey: "fake", baseUrl: (await startFakeJev()).url })
+    ? jevJudge({ apiKey: "fake", baseUrl: (await startFakeJev({ answerAfterMs: 300 })).url })
     : jevJudge({ apiKey: apiKey!, model: process.env.JEV_MODEL ?? JEV_MODEL });
 // The Fake Jev's token counts are invented and nobody pays for them: no Budget.
-const hunts = createHunts({ judge, budgetUsd: fakeJev ? Infinity : budgetUsd, frameGapMs });
+const hunts = createHunts({ judge, budgetUsd: fakeJev ? Infinity : budgetUsd });
 
 const port = Number(process.env.PORT ?? 4747);
 createServer(createApp({ hunts, fakeJev })).listen(port, () => {

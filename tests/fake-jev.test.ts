@@ -92,4 +92,22 @@ describe("the Fake Jev", () => {
         });
         expect(response.status).toBe(400);
     });
+
+    it("takes as long to answer as it is told to", async () => {
+        const slow = await startFakeJev({ answerAfterMs: 80 });
+        try {
+            const startedAt = performance.now();
+            const response = await fetch(`${slow.url}/v1/systemone`, {
+                method: "POST",
+                headers: { authorization: "Bearer key", "content-type": "application/json", "TypeSafe-Danger-Zone-Images": "true" },
+                body: JSON.stringify(mugRequest()),
+            });
+
+            expect(response.status).toBe(200);
+            // A timer may fire a millisecond or two early.
+            expect(performance.now() - startedAt).toBeGreaterThanOrEqual(77);
+        } finally {
+            await slow.close();
+        }
+    });
 });
