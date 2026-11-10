@@ -5,6 +5,7 @@ import { createApp } from "../src/server/app.ts";
 import { type FakeJev, startFakeJev } from "../src/server/fake-jev.ts";
 import { createHunts } from "../src/server/hunts.ts";
 import { jevJudge } from "../src/server/judge.ts";
+import { pictureSize } from "../src/server/picture-size.ts";
 import { jpeg, png } from "./support/pictures.ts";
 
 /**
@@ -167,6 +168,25 @@ describe("the Jeiger server", () => {
         expect(response.status).toBe(200);
         expect(response.headers.get("content-type")).toMatch(/^text\/html/);
         expect(await response.text()).toContain("<title>Jeiger</title>");
+    });
+
+    it("serves what a phone needs to put Jeiger on its home screen", async () => {
+        const manifest = await fetch(`${url}/web/manifest.webmanifest`);
+        expect(manifest.headers.get("content-type")).toBe("application/manifest+json");
+        const { name, display, start_url: startUrl, icons } = await manifest.json();
+        expect({ name, display, startUrl }).toEqual({ name: "Jeiger", display: "standalone", startUrl: "/" });
+
+        // Every icon the manifest and the page name is there, and is the PNG of the size it says.
+        const page = await (await fetch(`${url}/`)).text();
+        expect(page).toContain('<link rel="manifest" href="/web/manifest.webmanifest">');
+        const touchIcon = /<link rel="apple-touch-icon" href="([^"]+)">/.exec(page)?.[1];
+        expect(touchIcon).toBe("/web/icon-180.png");
+        for (const icon of [...icons, { src: touchIcon, sizes: "180x180" }]) {
+            const response = await fetch(`${url}${icon.src}`);
+            expect(response.headers.get("content-type"), icon.src).toBe("image/png");
+            const size = pictureSize(new Uint8Array(await response.arrayBuffer()));
+            expect(`${size?.width}x${size?.height}`, icon.src).toBe(icon.sizes);
+        }
     });
 
     it("serves the shared TypeScript to the browser as JavaScript", async () => {

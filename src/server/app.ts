@@ -42,6 +42,10 @@ const CONTENT_TYPES: Record<string, string> = {
     html: "text/html; charset=utf-8",
     css: "text/css; charset=utf-8",
     ts: "text/javascript; charset=utf-8",
+    // What a phone reads to put the page on its home screen.
+    webmanifest: "application/manifest+json",
+    png: "image/png",
+    svg: "image/svg+xml",
 };
 
 class Rejected extends Error {

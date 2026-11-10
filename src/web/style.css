@@ -28,7 +28,8 @@ body {
 .jeiger {
     max-width: 34rem;
     margin: 0 auto;
-    padding: 1rem;
+    /* Opened from a phone's home screen the page reaches under the notch and the home bar: keep clear of both. */
+    padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
     display: grid;
     gap: 0.9rem;
 }

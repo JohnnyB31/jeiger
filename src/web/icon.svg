@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+    <!-- The counter's dial. The square is filled to its edges and the dial stays in the
+         middle four fifths, so a phone may round or mask the corners. The PNGs beside this
+         file are renders of it: scripts/render-icons.cjs. -->
+    <rect width="512" height="512" fill="#14160f"/>
+    <circle cx="256" cy="262" r="196" fill="#ebe4c9"/>
+    <g fill="none" stroke-width="34">
+        <path stroke="#5b7d8c" d="M126.1 245 A150 150 0 0 1 181 190.1"/>
+        <path stroke="#d99a1c" d="M181 190.1 A150 150 0 0 1 287.2 173.3"/>
+        <path stroke="#c8371f" d="M287.2 173.3 A150 150 0 0 1 385.9 245"/>
+    </g>
+    <line x1="256" y1="320" x2="330.6" y2="213.5" stroke="#23241c" stroke-width="14" stroke-linecap="round"/>
+    <circle cx="256" cy="320" r="24" fill="#23241c"/>
+</svg>

@@ -49,7 +49,22 @@ TYPESAFE_API_KEY=... npm start
 
 A laptop's webcam faces you, so the picture is shown mirrored and left and right are swapped to match. Jeiger assumes that for any camera that does not say it faces away; the Mirror switch turns it off.
 
-**On a phone:** a browser gives a page the camera only on `localhost` or over HTTPS, so opening the laptop's address from a phone will not work as it is. Put an HTTPS tunnel in front of the port, or run it on a laptop with a webcam first.
+## On a phone
+
+Jeiger is a web page with a small server behind it, not an app from a store. A phone opens the page and can keep it on its home screen, where it starts full-screen like an app. The server still has to run somewhere the phone can reach, and over HTTPS: a browser gives a page the camera only on `localhost` or over HTTPS, so the laptop's plain `http://192.168...` address will not do.
+
+1. **Give the server an HTTPS address.** Two ways:
+   - *From your laptop, for a try-out.* Start Jeiger, then put a tunnel in front of it. With [cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/) installed, `cloudflared tunnel --url http://localhost:4747` prints an `https://….trycloudflare.com` address. It lasts as long as the command runs and is a new address each time.
+   - *Hosted, to keep.* Run `npm start` on any host that offers Node 22.18 or newer and HTTPS, with `TYPESAFE_API_KEY` set there.
+2. **Open that address on the phone** and check that a Hunt works.
+3. **Put it on the home screen.** iPhone: in Safari, Share, then "Add to Home Screen". Android: in Chrome, the menu, then "Install app" or "Add to Home screen".
+
+Two things to know:
+
+- **The page has no login.** Anyone who has the address can hunt on your Jev key. The Budget is what bounds the cost, so keep it small on an address others might find.
+- **The home-screen icon is a bookmark to that address.** With a try-out tunnel it stops working when the tunnel does; add it again from the new address, or host Jeiger for an address that stays.
+
+This has been checked in desktop Chromium only (it reads the manifest and reports nothing missing for installing). It has not been tried on a real phone.
 
 ## What has and has not been tested
 
@@ -81,9 +96,9 @@ The words used here (Hunt, Target, Exemplar, Frame, Reading, Heat, Bearing, Phas
 | - | - |
 | `src/core` | The logic, pure and shared by the server's tests and the browser. |
 | `src/server` | The Jev client (`judge.ts`), Hunts and the Budget, the HTTP server, the Fake Jev. |
-| `src/web` | The page. |
+| `src/web` | The page, and what a phone needs to put it on its home screen (the manifest and icons). |
 | `tests` | One file per module, except the page (`src/web`) and the entry point (`main.ts`). |
-| `scripts` | The browser check. |
+| `scripts` | The browser check, and the script that renders the icons from `src/web/icon.svg`. |
 
 ## Where it could go
 
