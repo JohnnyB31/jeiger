@@ -40,6 +40,8 @@ With a key from TypeSafe:
 TYPESAFE_API_KEY=... npm start
 ```
 
+Or put the settings in a file named `.env` in this folder, one `NAME=value` per line, and run plain `npm start`: it reads that file. Git ignores `.env`, so the key stays out of the repository.
+
 | Setting | Default | Meaning |
 | - | - | - |
 | `TYPESAFE_API_KEY` | none | The Jev API key. It stays on the server; the page never sees it. |

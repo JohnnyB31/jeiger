@@ -8,8 +8,8 @@
     "node": ">=22.18"
   },
   "scripts": {
-    "start": "node src/server/main.ts",
-    "demo": "node src/server/main.ts --fake-jev",
+    "start": "node --env-file-if-exists=.env src/server/main.ts",
+    "demo": "node --env-file-if-exists=.env src/server/main.ts --fake-jev",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
