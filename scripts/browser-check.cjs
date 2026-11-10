@@ -19,7 +19,8 @@ const URL = `http://localhost:${PORT}/`;
 
 async function main() {
     const server = spawn(process.execPath, [join(__dirname, "../src/server/main.ts"), "--fake-jev"], {
-        env: { ...process.env, PORT: String(PORT) },
+        // Faster than the default one Frame a second, so the made-up Target is caught in every Phase within the minute.
+        env: { ...process.env, PORT: String(PORT), JEIGER_FRAME_GAP_MS: "150" },
         stdio: ["ignore", "pipe", "inherit"],
     });
     await new Promise((resolve) => server.stdout.once("data", resolve));

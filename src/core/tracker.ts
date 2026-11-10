@@ -52,7 +52,8 @@ export const untracked: Tracked = { heat: 0, bearing: null, phase: "cold", readA
 
 const HEAT_HALF_LIFE_MS = 350;
 const BEARING_HALF_LIFE_MS = 250;
-const STALE_AFTER_MS = 1500;
+/** Frames go out about one a second (the server's Frame gap), so a belief is fresh for a few of those. */
+const STALE_AFTER_MS = 3000;
 const FADE_HALF_LIFE_MS = 500;
 /** At or above this, a Reading's box (and the Bearing) is believed. */
 const BELIEVE = 0.5;

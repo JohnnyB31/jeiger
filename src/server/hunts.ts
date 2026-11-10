@@ -2,7 +2,9 @@
  * The open Hunts and the Budget they share (CONTEXT.md).
  *
  * A Hunt is opened with its Target and then fed Frames; each Frame costs one
- * request to the Judge. The Budget is one sum for the whole running server,
+ * request to the Judge. Requests go out at least one Frame gap apart (a second
+ * by default), because the Judge limits how often an account may ask: a Frame
+ * that arrives sooner waits its turn here. The Budget is one sum for the whole running server,
  * not per Hunt: it is the guard against an open tab left pointing at a wall.
  * It is checked before each request, so the request that crosses it is still
  * made and the spend ends slightly above it.
@@ -31,6 +33,8 @@ export class HuntError extends Error {
 export type Hunts = {
     /** Infinity when there is no Budget. */
     readonly budgetUsd: number;
+    /** The least time between two requests to the Judge, in milliseconds. */
+    readonly frameGapMs: number;
     /**
      * Opens a Hunt for what the person typed and the photo they showed, and
      * returns its id. Throws a HuntError when that names no Target.
@@ -44,13 +48,27 @@ export const MAX_WORDS = 200;
 /** Exemplars are held in memory, so only the most recent Hunts are kept. */
 const HUNTS_KEPT = 20;
 
-export function createHunts(options: { judge: Judge; budgetUsd: number }): Hunts {
+export function createHunts(options: { judge: Judge; budgetUsd: number; frameGapMs: number }): Hunts {
     const targets = new Map<string, Target>();
     let inputTokens = 0;
     const spent = (): Spent => ({ inputTokens, usd: inputTokens * JEV_USD_PER_TOKEN });
 
+    /**
+     * Resolves when the Judge may be asked again. Turns are handed out one
+     * Frame gap apart, in the order Frames arrive, over all Hunts: the
+     * Judge's rate limit is the account's, so two open tabs share one pace.
+     */
+    let nextTurnAt = 0;
+    const turn = (): Promise<void> => {
+        const now = Date.now();
+        const at = Math.max(now, nextTurnAt);
+        nextTurnAt = at + options.frameGapMs;
+        return at === now ? Promise.resolve() : new Promise((resolve) => setTimeout(resolve, at - now));
+    };
+
     return {
         budgetUsd: options.budgetUsd,
+        frameGapMs: options.frameGapMs,
 
         open(words, exemplar) {
             const target = targetOf(words, exemplar);
@@ -71,6 +89,7 @@ export function createHunts(options: { judge: Judge; budgetUsd: number }): Hunts
             if (spent().usd >= options.budgetUsd) {
                 throw new HuntError("budget_spent", `The Budget of $${options.budgetUsd.toFixed(2)} is spent. Restart Jeiger to go on.`);
             }
+            await turn();
             const sighting = await options.judge.read(target, frame);
             inputTokens += sighting.inputTokens;
             return { reading: sighting.reading, spent: spent() };

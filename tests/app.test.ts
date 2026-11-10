@@ -18,7 +18,7 @@ let server: Server;
 let url: string;
 
 async function start(budgetUsd = 1) {
-    const hunts = createHunts({ judge: jevJudge({ apiKey: "test-key", baseUrl: jev.url }), budgetUsd });
+    const hunts = createHunts({ judge: jevJudge({ apiKey: "test-key", baseUrl: jev.url }), budgetUsd, frameGapMs: 0 });
     server = createServer(createApp({ hunts, fakeJev: false }));
     await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
     url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
@@ -158,7 +158,7 @@ describe("the Jeiger server", () => {
     it("tells the page how it is set up", async () => {
         const response = await fetch(`${url}/api/config`);
 
-        expect(await response.json()).toEqual({ fakeJev: false, budgetUsd: 1, maxWords: 200 });
+        expect(await response.json()).toEqual({ fakeJev: false, budgetUsd: 1, frameGapMs: 0, maxWords: 200 });
     });
 
     it("serves the page", async () => {

@@ -20,7 +20,7 @@ This is a first prototype. It is a standalone folder: it shares no code, depende
 Three properties of Jev carry the idea:
 
 - **The answer is a number, not a sentence.** A probability can drive a click rate directly, and can be smoothed over time like any sensor signal.
-- **It is cheap enough to ask continuously.** Input costs $0.042 per million tokens and output is free, so several frames a second is affordable. How many tokens a picture costs is not published yet; the page shows what the running server has spent so far.
+- **It is cheap enough to ask continuously.** Input costs $0.042 per million tokens and output is free, so a frame every second for minutes on end costs little. How many tokens a picture costs is not published yet; the page shows what the running server has spent so far.
 - **A picture can go inside the question.** "Find the thing shown in this photo" needs no words at all, which is what the Photo button does.
 
 ## Run it
@@ -45,6 +45,7 @@ TYPESAFE_API_KEY=... npm start
 | - | - | - |
 | `TYPESAFE_API_KEY` | none | The Jev API key. It stays on the server; the page never sees it. |
 | `JEIGER_BUDGET_USD` | `0.25` | The Budget: once one running server has spent this much on Jev, Hunts stop. |
+| `JEIGER_FRAME_GAP_MS` | `1000` | The least time between two requests to Jev. One a second keeps under Jev's rate limit; lower it only if your account's limit allows. |
 | `JEV_MODEL` | `jev-1.14.0` | Box questions need Jev 1.14. |
 | `PORT` | `4747` | |
 
@@ -71,7 +72,8 @@ camera ──frame──▶ server ──Noul + Box──▶ Jev
      └─ cue       Bearing → "left", "up", "hold", "found" (spoken, optional)
 ```
 
-- **Readings and Clicks run at different speeds.** A Reading arrives a few times a second; Clicks are generated every few milliseconds from the current Heat. So the sound stays smooth however slowly Jev answers, and it fades to background ticking if Readings stop.
+- **One frame a second, and no more.** Jev limits how many requests an account may send. The server sends at most one per second, over all open tabs together, and makes a frame that arrives sooner wait its turn.
+- **Readings and Clicks run at different speeds.** A Reading arrives once a second; Clicks are generated every few milliseconds from the current Heat. So the sound stays smooth however slowly Jev answers, and it fades to background ticking if Readings stop.
 - **A box is believed only when the Noul is high.** Jev answers a Box question with a box even when the Target is not there, so the box is ignored unless the same frame's "is it visible?" says yes.
 - **A failed request is never retried.** By then the camera has moved, so the next frame is sent instead. When Jev says it is busy, the page slows down.
 

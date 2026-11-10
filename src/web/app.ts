@@ -3,7 +3,7 @@
  *
  * Three loops run while a Hunt is on, each at its own pace:
  *   - reading: grab a Frame, send it, fold the Reading into `tracked`. One
- *     request at a time, as fast as the Judge answers.
+ *     request at a time, one per Frame gap (a second by default).
  *   - sound: every few milliseconds, decide from the current Heat whether a
  *     Click falls now. It never waits for a Reading.
  *   - drawing: every animation frame, the needle, the box and the readout.
@@ -18,9 +18,8 @@ import { type Box, isBelieved, type Reading, settle, track, type Tracked, untrac
 
 const FRAME_SHORT_SIDE = 320;
 const EXEMPLAR_SHORT_SIDE = 512;
-/** The least time between two Frames: about 6 Readings a second at most. */
-const MIN_GAP_MS = 150;
-const MAX_GAP_MS = 4000;
+/** The longest the page waits between two Frames while it backs off from a busy Judge. */
+const MAX_GAP_MS = 8000;
 const SOUND_TICK_MS = 8;
 const CUE_EVERY_MS = 1600;
 
@@ -39,7 +38,7 @@ const voiceSwitch = $<HTMLInputElement>("voice");
 const mirrorSwitch = $<HTMLInputElement>("mirror");
 const lamp = $("lamp");
 
-/** How the server is set up: {fakeJev, budgetUsd (null for no Budget), maxWords}. */
+/** How the server is set up: {fakeJev, budgetUsd (null for no Budget), frameGapMs, maxWords}. */
 const config = await (await fetch("/api/config")).json();
 
 function dollars(amount: number, decimals: number): string {
@@ -194,7 +193,9 @@ function showExemplar(): void {
 // ─── The reading loop ───────────────────────────────────────────────────────
 
 async function readLoop(id: string): Promise<void> {
-    let gap = MIN_GAP_MS;
+    // The server sends the Judge one Frame per Frame gap and makes a sooner one wait, so the page keeps the same pace.
+    const leastGap: number = config.frameGapMs;
+    let gap = leastGap;
     let lastReadingAt: number | null = null;
 
     while (huntId === id) {
@@ -219,7 +220,7 @@ async function readLoop(id: string): Promise<void> {
                 lastReadingAt = now;
                 if (!config.fakeJev) $("spent").textContent = dollars(body.spent.usd, 5);
                 readingsTaken += 1;
-                gap = MIN_GAP_MS;
+                gap = leastGap;
                 showStatus("");
             } else if (response.status === 503) {
                 gap = Math.min(MAX_GAP_MS, gap * 2);

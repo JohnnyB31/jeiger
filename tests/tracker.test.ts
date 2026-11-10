@@ -22,9 +22,9 @@ describe("a Hunt's Heat", () => {
 
     it("holds while Readings are fresh, then fades once they stop", () => {
         const state = track(untracked, reading(0.8), 0);
-        expect(settle(state, 1000).heat).toBeCloseTo(0.8);
-        // Stale after 1.5 s; one fade half-life (500 ms) later it has halved.
-        expect(settle(state, 2000).heat).toBeCloseTo(0.4);
+        expect(settle(state, 2500).heat).toBeCloseTo(0.8);
+        // Stale after 3 s (Frames come about one a second); one fade half-life (500 ms) later it has halved.
+        expect(settle(state, 3500).heat).toBeCloseTo(0.4);
     });
 });
 
