@@ -18,8 +18,18 @@ import type { Reading } from "../core/tracker.ts";
 
 export type Picture = { bytes: Uint8Array<ArrayBuffer>; format: "jpg" | "png" };
 
-/** What a Hunt looks for: words, an Exemplar, or both. At least one is set. */
+/** What a Hunt looks for: words, an Exemplar, or both. Build one with `targetOf`, which sees to it that at least one is set. */
 export type Target = { words: string | null; exemplar: Picture | null };
+
+/**
+ * The Target for what a person typed and the photo they showed, or null when
+ * that leaves nothing to look for. The words lose their backticks: in a
+ * question to Jev, backticks name a field of the state.
+ */
+export function targetOf(words: string | null, exemplar: Picture | null): Target | null {
+    const cleaned = words?.replaceAll("`", "").replace(/\s+/g, " ").trim() || null;
+    return cleaned === null && exemplar === null ? null : { words: cleaned, exemplar };
+}
 
 export type Sighting = {
     reading: Reading;
@@ -32,7 +42,7 @@ export type Sighting = {
 export type Judge = { read(target: Target, frame: Picture): Promise<Sighting> };
 
 /**
- * - `busy`: Jev is rate limiting or overloaded (429, 529), or did not answer in time. Slow down.
+ * - `busy`: Jev is rate limiting, overloaded or failing (429, 529, any 5xx), or did not answer in time. Slow down.
  * - `unauthorised`: Jev does not accept the API key.
  * - `refused`: Jev rejected the request, e.g. a picture outside its limits. `message` is Jev's reason.
  * - `broken`: Jev answered with something this file cannot read. Its format may have changed.
@@ -63,6 +73,7 @@ export function jevJudge(options: { apiKey: string; baseUrl?: string; model?: st
     return {
         async read(target, frame) {
             let response: Response;
+            let text: string;
             try {
                 response = await fetch(url, {
                     method: "POST",
@@ -75,11 +86,13 @@ export function jevJudge(options: { apiKey: string; baseUrl?: string; model?: st
                     body: JSON.stringify(requestFor(model, target, frame)),
                     signal: AbortSignal.timeout(ANSWER_WITHIN_MS),
                 });
+                // Inside the try: the time limit also covers reading the answer.
+                text = await response.text();
             } catch (error) {
                 throw new JudgeError("busy", `Jev did not answer: ${error instanceof Error ? error.message : String(error)}`);
             }
 
-            const body: unknown = await response.json().catch(() => null);
+            const body = parsed(text);
             if (!response.ok) throw new JudgeError(failureFor(response.status), reasonIn(body) ?? `Jev answered ${response.status}`);
             return sightingIn(body);
         },
@@ -91,7 +104,7 @@ function requestFor(model: string, target: Target, frame: Picture) {
     // the key appears. Jev matches keys as plain text, hence a fresh UUID each.
     const frameKey = randomUUID();
     const exemplarKey = randomUUID();
-    const words = target.words === null ? null : withoutBackticks(target.words);
+    const { words } = target;
 
     // Both pictures go in the state, which both questions share, so each is
     // sent to the model once. A question names one by its path in backticks.
@@ -125,13 +138,17 @@ function assetFor(picture: Picture) {
     return { type: "image", format: picture.format, data_base64: Buffer.from(picture.bytes).toString("base64") };
 }
 
-/** In a question, backticks name a field of the state. A Target's words must not. */
-function withoutBackticks(words: string): string {
-    return words.replaceAll("`", "").replace(/\s+/g, " ").trim();
+function parsed(text: string): unknown {
+    try {
+        return JSON.parse(text);
+    } catch {
+        return null;
+    }
 }
 
 function failureFor(status: number): JudgeFailure {
-    if (status === 429 || status === 529) return "busy";
+    // 429 and 529 are Jev's documented "slow down". Any other 5xx is Jev's trouble, not the request's.
+    if (status === 429 || status >= 500) return "busy";
     // The documentation says 401; on 2026-11-10 the API answered 403 to a missing key.
     if (status === 401 || status === 403) return "unauthorised";
     return "refused";

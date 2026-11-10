@@ -3,7 +3,7 @@
  *
  *   POST /api/hunts                 form fields `words` and/or `exemplar` (a PNG or JPEG file) -> 201 {id}
  *   POST /api/hunts/:id/readings    body: one Frame, a PNG or JPEG                              -> 200 HuntReading
- *   GET  /api/config                                                                            -> {simulated, budgetUsd, maxWords}
+ *   GET  /api/config                                                                            -> {fakeJev, budgetUsd, maxWords}
  *
  * A failure is `{error: {code, message}}`; `message` is written for the person
  * holding the camera. 503 `judge_busy` means "send the next Frame later".
@@ -23,8 +23,7 @@ import { pictureSize } from "./picture-size.ts";
 export type AppOptions = {
     hunts: Hunts;
     /** True when the Judge is the Fake Jev: the page says so. */
-    simulated: boolean;
-    budgetUsd: number;
+    fakeJev: boolean;
 };
 
 const MAX_EXEMPLAR_FORM_BYTES = 8 * 1024 * 1024;
@@ -43,7 +42,6 @@ const CONTENT_TYPES: Record<string, string> = {
     html: "text/html; charset=utf-8",
     css: "text/css; charset=utf-8",
     ts: "text/javascript; charset=utf-8",
-    svg: "image/svg+xml",
 };
 
 class Rejected extends Error {
@@ -64,21 +62,22 @@ export function createApp(options: AppOptions): RequestListener {
             response.writeHead(status, { "content-type": "application/json", "cache-control": "no-store" });
             response.end(JSON.stringify(body));
         };
-        const { pathname } = new URL(request.url ?? "/", "http://jeiger");
 
         try {
+            // Inside the try: a request line such as `GET //` is not a URL, and parsing it throws.
+            const { pathname } = new URL(request.url ?? "/", "http://jeiger");
             if (request.method === "GET" && pathname === "/api/config") {
-                return json(200, { simulated: options.simulated, budgetUsd: options.budgetUsd, maxWords: MAX_WORDS });
+                return json(200, { fakeJev: options.fakeJev, budgetUsd: options.hunts.budgetUsd, maxWords: MAX_WORDS });
             }
             if (request.method === "POST" && pathname === "/api/hunts") {
                 const form = await formOf(request);
                 const words = form.get("words");
                 const exemplar = form.get("exemplar");
-                const id = options.hunts.open({
-                    words: typeof words === "string" ? words : null,
+                const id = options.hunts.open(
+                    typeof words === "string" ? words : null,
                     // A browser sends an empty file for a file field nobody filled.
-                    exemplar: exemplar instanceof File && exemplar.size > 0 ? pictureOf(new Uint8Array(await exemplar.arrayBuffer())) : null,
-                });
+                    exemplar instanceof File && exemplar.size > 0 ? pictureOf(new Uint8Array(await exemplar.arrayBuffer())) : null,
+                );
                 return json(201, { id });
             }
             const readings = /^\/api\/hunts\/([^/]+)\/readings$/.exec(pathname);
@@ -96,6 +95,7 @@ export function createApp(options: AppOptions): RequestListener {
             serve(file, response);
         } catch (error) {
             if (error instanceof Rejected) return json(error.status, { error: { code: error.code, message: error.message } });
+            if (error instanceof TypeError && error.message === "Invalid URL") return json(400, { error: { code: "bad_url", message: "That is not a URL." } });
             if (error instanceof HuntError) return json(HUNT_STATUS[error.kind], { error: { code: error.kind, message: error.message } });
             if (error instanceof JudgeError) {
                 console.error(`Judge ${error.kind}: ${error.message}`);

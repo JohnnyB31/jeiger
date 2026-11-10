@@ -33,7 +33,7 @@ npm install
 npm run demo          # no API key: a made-up Target, to see and hear the counter
 ```
 
-Open <http://localhost:4747>, allow the camera, and press Hunt. In the demo nothing looks at the camera: a simulated Target drifts through the view so the counter passes through cold, warm, hot and locked.
+Open <http://localhost:4747>, allow the camera, and press Hunt. The demo runs on the Fake Jev: nothing looks at the camera, and a made-up Target drifts through the view so the counter passes through cold, warm, hot and locked.
 
 With a key from TypeSafe:
 
@@ -44,7 +44,7 @@ TYPESAFE_API_KEY=... npm start
 | Setting | Default | Meaning |
 | - | - | - |
 | `TYPESAFE_API_KEY` | none | The Jev API key. It stays on the server; the page never sees it. |
-| `JEIGER_BUDGET_USD` | `0.25` | The most one running server may spend on Jev. After that, Hunts stop. |
+| `JEIGER_BUDGET_USD` | `0.25` | The Budget: once one running server has spent this much on Jev, Hunts stop. |
 | `JEV_MODEL` | `jev-1.14.0` | Box questions need Jev 1.14. |
 | `PORT` | `4747` | |
 
@@ -52,8 +52,8 @@ TYPESAFE_API_KEY=... npm start
 
 ## What has and has not been tested
 
-- `npm test` runs 80 tests: the tracking and click logic, the Jev request and answer handling, the Budget, and the server over real HTTP.
-- The page was driven in headless Chromium with a fake camera through a whole Hunt, down to the locked Phase.
+- `npm test` covers the tracking and click logic, the Jev request and answer handling, the Budget, and the server over real HTTP. `npm run typecheck` checks the types, the page's code included.
+- `node scripts/browser-check.cjs` drives the page in headless Chromium with a fake camera through a whole Hunt, down to the locked Phase and Stop. It needs Playwright, which is not in `package.json` (the script says how to get it). The page has no other tests.
 - **Jev itself has not been called.** There was no API key when this was built, so every test runs against a Fake Jev that enforces Jev's documented request rules (`src/server/fake-jev.ts`). The first run with a real key is the first real test; [ADR 0001](docs/adr/0001-jev-is-called-over-plain-http-and-has-not-been-called-for-real.md) lists what was guessed.
 - So nothing here says how *well* Jev finds things, or how fast it answers. TypeSafe itself calls image input "Dreamer-ready", not production-ready.
 
@@ -80,7 +80,8 @@ The words used here (Hunt, Target, Exemplar, Frame, Reading, Heat, Bearing, Phas
 | `src/core` | The logic, pure and shared by the server's tests and the browser. |
 | `src/server` | The Jev client (`judge.ts`), Hunts and the Budget, the HTTP server, the Fake Jev. |
 | `src/web` | The page. |
-| `tests` | One file per module. |
+| `tests` | One file per module, except the page (`src/web`) and the entry point (`main.ts`). |
+| `scripts` | The browser check. |
 
 ## Where it could go
 

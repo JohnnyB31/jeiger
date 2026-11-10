@@ -9,7 +9,7 @@
   },
   "scripts": {
     "start": "node src/server/main.ts",
-    "demo": "node src/server/main.ts --simulate",
+    "demo": "node src/server/main.ts --fake-jev",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

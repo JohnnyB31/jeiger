@@ -14,7 +14,7 @@
 import { clickRate, clicksNow, clickVoice } from "../core/clicker.ts";
 import { type Cue, cueFor } from "../core/cue.ts";
 import { fitFrame } from "../core/frame-fit.ts";
-import { type Box, type Reading, settle, track, type Tracked, untracked } from "../core/tracker.ts";
+import { type Box, isBelieved, type Reading, settle, track, type Tracked, untracked } from "../core/tracker.ts";
 
 const FRAME_SHORT_SIDE = 320;
 const EXEMPLAR_SHORT_SIDE = 512;
@@ -45,6 +45,7 @@ let huntId: string | null = null;
 /** The box of the last Reading that saw the Target, as shown (mirrored if the view is). */
 let shownBox: Box | null = null;
 let readingsPerSecond = 0;
+let readingsTaken = 0;
 
 // ─── Starting and stopping a Hunt ───────────────────────────────────────────
 
@@ -79,7 +80,7 @@ async function start(): Promise<void> {
     shownBox = null;
     readingsPerSecond = 0;
     spoken = { cue: null, at: 0 };
-    say("");
+    showStatus("");
     $("idle").hidden = true;
     huntButton.textContent = "Stop";
     huntButton.classList.add("running");
@@ -92,10 +93,10 @@ function stop(message: string): void {
     shownBox = null;
     huntButton.textContent = "Hunt";
     huntButton.classList.remove("running");
-    say(message);
+    showStatus(message);
 }
 
-function say(message: string): void {
+function showStatus(message: string): void {
     status.textContent = message;
 }
 
@@ -123,7 +124,12 @@ async function startCamera(): Promise<void> {
     applyMirror();
 }
 
-mirrorSwitch.addEventListener("change", applyMirror);
+mirrorSwitch.addEventListener("change", () => {
+    applyMirror();
+    // What the Hunt believed was in the other orientation: start it over.
+    tracked = untracked;
+    shownBox = null;
+});
 function applyMirror(): void {
     view.classList.toggle("mirrored", mirrorSwitch.checked);
 }
@@ -170,8 +176,13 @@ async function readLoop(id: string): Promise<void> {
 
     while (huntId === id) {
         const startedAt = performance.now();
+        let frame: Blob;
         try {
-            const frame = await jpegOf(camera, camera.videoWidth, camera.videoHeight, FRAME_SHORT_SIDE, 0.7);
+            frame = await jpegOf(camera, camera.videoWidth, camera.videoHeight, FRAME_SHORT_SIDE, 0.7);
+        } catch (error) {
+            return stop(error instanceof Error ? error.message : String(error));
+        }
+        try {
             const response = await fetch(`/api/hunts/${id}/readings`, { method: "POST", headers: { "content-type": "image/jpeg" }, body: frame });
             const body = await response.json();
             if (huntId !== id) return;
@@ -180,23 +191,24 @@ async function readLoop(id: string): Promise<void> {
                 const now = performance.now();
                 const reading = asShown(body.reading);
                 tracked = track(tracked, reading, now);
-                if (tracked.bearing !== null && reading.visible >= 0.5) shownBox = reading.box;
+                if (isBelieved(reading)) shownBox = reading.box;
                 if (lastReadingAt !== null) readingsPerSecond = 0.7 * readingsPerSecond + 0.3 * (1000 / (now - lastReadingAt));
                 lastReadingAt = now;
                 $("spent").textContent = body.spent.usd.toFixed(5);
-                document.documentElement.dataset.readings = String(Number(document.documentElement.dataset.readings ?? 0) + 1);
+                readingsTaken += 1;
                 gap = MIN_GAP_MS;
-                say("");
+                showStatus("");
             } else if (response.status === 503) {
                 gap = Math.min(MAX_GAP_MS, gap * 2);
-                say(body.error.message);
+                showStatus(body.error.message);
             } else {
                 return stop(body.error.message);
             }
         } catch {
+            // The request failed or its answer was not JSON: either way the server is not there.
             if (huntId !== id) return;
             gap = Math.min(MAX_GAP_MS, gap * 2);
-            say("Lost the connection to Jeiger. Trying again.");
+            showStatus("Lost the connection to Jeiger. Trying again.");
         }
         await new Promise((resolve) => setTimeout(resolve, Math.max(0, gap - (performance.now() - startedAt))));
     }
@@ -282,7 +294,9 @@ function draw(): void {
 
     needle.style.setProperty("--angle", `${-60 + 120 * state.heat}deg`);
     $("phase").textContent = state.phase;
+    // For scripts/browser-check.cjs, which drives this page and reads how the Hunt is going.
     document.documentElement.dataset.phase = state.phase;
+    document.documentElement.dataset.readings = String(readingsTaken);
     document.body.classList.toggle("locked", state.phase === "locked");
     $("rate").textContent = (huntId === null ? 0 : clickRate(state.heat)).toFixed(1);
     $("pace").textContent = (huntId === null ? 0 : readingsPerSecond).toFixed(1);
@@ -304,6 +318,6 @@ function draw(): void {
 // ─── Setting up ─────────────────────────────────────────────────────────────
 
 const config = await (await fetch("/api/config")).json();
-$("simulated").hidden = !config.simulated;
+$("fake-jev").hidden = !config.fakeJev;
 words.maxLength = config.maxWords;
 requestAnimationFrame(draw);

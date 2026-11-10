@@ -46,6 +46,7 @@ export type FakeJev = {
 
 const MODELS_WITH_BOX = ["jev-1.14.0", "jev-latest", "jev-preview"];
 const MODELS = [...MODELS_WITH_BOX, "jev-1.13.0"];
+// Jev's limits, written out again here on purpose: the fake must not agree with the page by sharing its constants.
 const MIN_SIDE = 280;
 const MAX_SIDE = 1568;
 const MAX_FILE_BYTES = 16 * 1024 * 1024;
@@ -199,7 +200,7 @@ function accept(headers: Record<string, string | string[] | undefined>, text: st
     if (hasBox && !MODELS_WITH_BOX.includes(model)) throw new Refusal(400, "Box questions need Jev 1.14.");
     if (hasBox && keys.length === 0) throw new Refusal(400, "A Box question needs an image in the request.");
 
-    const sizes = new Map(keys.map((key) => [key, sizeOf(key, assets[key])]));
+    const sizes = new Map(keys.map((key) => [key, acceptedPicture(key, assets[key])]));
     const strings: { at: string; text: string }[] = [];
     collectStrings(state, "state", strings);
     for (const [name, question] of Object.entries(questions)) {
@@ -219,7 +220,8 @@ function accept(headers: Record<string, string | string[] | undefined>, text: st
     return asked;
 }
 
-function sizeOf(key: string, asset: unknown) {
+/** The format and size of one asset's picture. Throws a Refusal for an asset Jev would reject. */
+function acceptedPicture(key: string, asset: unknown) {
     if (key.trim() === "") throw new Refusal(400, "A reference can't be empty.");
     if (!isRecord(asset)) throw new Refusal(422, `assets.${key} must be an object.`);
     if (asset.type !== undefined && asset.type !== "image") throw new Refusal(422, `assets.${key}.type must be "image".`);

@@ -33,7 +33,7 @@ How sure Jeiger currently is that the Target is in view, from 0 to 1. It is smoo
 _Avoid_: Score, probability, signal
 
 **Bearing**:
-Where the Target sits relative to the centre of the view: left or right, up or down, and how much of the view it fills. There is a Bearing only while the Heat is high enough to believe the box.
+Where the Target sits relative to the centre of the view: how far left or right, and how far up or down. There is a Bearing only while the Heat is high enough to believe the box.
 _Avoid_: Position, direction, location
 
 **Phase**:
@@ -44,8 +44,12 @@ _Avoid_: Status, state, mode
 One tick of the counter. Clicks come at random intervals whose average rate rises with the Heat, and each one is panned and pitched by the Bearing.
 _Avoid_: Beep, tick, pulse
 
+**Cue**:
+The one word Jeiger says aloud for where a Hunt stands: left, right, up, down, hold or found.
+_Avoid_: Hint, prompt, announcement
+
 **Budget**:
-The most money one running Jeiger may spend on the Judge. When it is used up, Hunts get no more Readings.
+The amount of money after which a running Jeiger stops asking the Judge. The request that crosses it is still paid for, so the final spend is slightly above it.
 _Avoid_: Quota, limit, cap
 
 **Fake Jev**:

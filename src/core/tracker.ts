@@ -29,8 +29,6 @@ export type Bearing = {
     x: number;
     /** -1 at the bottom of the view, 0 in the centre, 1 at the top. */
     y: number;
-    /** Fraction of the view the Target fills, from 0 to 1. */
-    size: number;
 };
 
 export type Phase = "cold" | "warm" | "hot" | "locked";
@@ -68,7 +66,7 @@ export function track(state: Tracked, reading: Reading, atMs: number): Tracked {
     const heat = elapsed === null ? reading.visible : approach(before.heat, reading.visible, elapsed, HEAT_HALF_LIFE_MS);
 
     let bearing: Bearing | null;
-    if (reading.visible >= BELIEVE) {
+    if (isBelieved(reading)) {
         const seen = bearingOf(reading.box);
         if (before.bearing === null || elapsed === null) {
             bearing = seen;
@@ -78,14 +76,13 @@ export function track(state: Tracked, reading: Reading, atMs: number): Tracked {
             bearing = {
                 x: before.bearing.x + pull * (seen.x - before.bearing.x),
                 y: before.bearing.y + pull * (seen.y - before.bearing.y),
-                size: before.bearing.size + pull * (seen.size - before.bearing.size),
             };
         }
     } else {
         bearing = heat >= BELIEVE ? before.bearing : null;
     }
 
-    const centred = reading.visible >= BELIEVE && bearing !== null && isCentred(bearing);
+    const centred = isBelieved(reading) && bearing !== null && isCentred(bearing);
     const centredRun = centred ? before.centredRun + 1 : 0;
     return { heat, bearing, centredRun, readAt: atMs, phase: phaseOf(heat, centredRun) };
 }
@@ -106,16 +103,18 @@ function approach(from: number, to: number, elapsedMs: number, halfLifeMs: numbe
     return to + (from - to) * 0.5 ** (elapsedMs / halfLifeMs);
 }
 
-function bearingOf(box: Box): Bearing {
-    return {
-        x: (box.left + box.right) - 1,
-        y: 1 - (box.top + box.bottom),
-        size: Math.max(0, box.right - box.left) * Math.max(0, box.bottom - box.top),
-    };
+/** Whether this Reading says the Target is probably in the Frame, so that its box means something. */
+export function isBelieved(reading: Reading): boolean {
+    return reading.visible >= BELIEVE;
 }
 
-function isCentred(bearing: Bearing): boolean {
+/** Whether a Bearing is close enough to the middle of the view to count toward locking. */
+export function isCentred(bearing: Bearing): boolean {
     return Math.abs(bearing.x) <= CENTRED_WITHIN && Math.abs(bearing.y) <= CENTRED_WITHIN;
+}
+
+function bearingOf(box: Box): Bearing {
+    return { x: box.left + box.right - 1, y: 1 - (box.top + box.bottom) };
 }
 
 function phaseOf(heat: number, centredRun: number): Phase {

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { cueFor } from "../src/core/cue.ts";
 import type { Tracked } from "../src/core/tracker.ts";
 
-const hot = (x: number, y: number): Tracked => ({ heat: 0.9, bearing: { x, y, size: 0.05 }, phase: "hot", readAt: 0, centredRun: 0 });
+const hot = (x: number, y: number): Tracked => ({ heat: 0.9, bearing: { x, y }, phase: "hot", readAt: 0, centredRun: 0 });
 
 describe("the spoken cue", () => {
     it("is silent without a Bearing", () => {

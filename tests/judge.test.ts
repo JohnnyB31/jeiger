@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { type FakeJev, startFakeJev } from "../src/server/fake-jev.ts";
-import { JudgeError, jevJudge } from "../src/server/judge.ts";
+import { JudgeError, jevJudge, targetOf } from "../src/server/judge.ts";
 import { jpeg, png } from "./support/pictures.ts";
 
 const FRAME = jpeg(569, 320);
@@ -58,7 +58,7 @@ describe("the Jev Judge", () => {
     });
 
     it("keeps backticks out of the questions, where they would name a field of the state", async () => {
-        await judge().read({ words: "the `exemplar` label", exemplar: null }, FRAME);
+        await judge().read(targetOf("the `exemplar`  label", null)!, FRAME);
 
         expect(jev.requests[0]?.questions.where?.instructions).toBe("the exemplar label in `frame`");
     });
@@ -71,7 +71,7 @@ describe("the Jev Judge", () => {
         expect(sighting.reading.boxConfidence).toBeNull();
     });
 
-    it.each([429, 529])("reports Jev as busy on a %i, without asking again", async (status) => {
+    it.each([429, 529, 500, 503])("reports Jev as busy on a %i, without asking again", async (status) => {
         jev.failNext(status);
 
         const failure = await judge().read({ words: "the coffee mug", exemplar: null }, FRAME).catch((error) => error);
@@ -80,6 +80,14 @@ describe("the Jev Judge", () => {
         expect(failure.kind).toBe("busy");
         expect(jev.requests).toHaveLength(0);
         expect(jev.attempts).toBe(1);
+    });
+
+    it("reports Jev as busy when nothing answers", async () => {
+        const nobody = jevJudge({ apiKey: "test-key", baseUrl: "http://127.0.0.1:9" });
+
+        const failure = await nobody.read({ words: "the coffee mug", exemplar: null }, FRAME).catch((error) => error);
+
+        expect(failure.kind).toBe("busy");
     });
 
     it("reports a key Jev does not accept", async () => {
@@ -95,6 +103,12 @@ describe("the Jev Judge", () => {
 
         expect(failure.kind).toBe("refused");
         expect(failure.message).toMatch(/280/);
+    });
+
+    it("has no Target for words and Exemplar that are both missing", () => {
+        expect(targetOf("  ", null)).toBeNull();
+        expect(targetOf(null, null)).toBeNull();
+        expect(targetOf(" my   keys ", null)).toEqual({ words: "my keys", exemplar: null });
     });
 
     it("reports an answer it cannot read as broken", async () => {

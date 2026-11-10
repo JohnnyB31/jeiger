@@ -23,10 +23,10 @@ describe("Hunts", () => {
         const { judge, asked } = seeingJudge();
         const hunts = createHunts({ judge, budgetUsd: 1 });
 
-        const hunt = hunts.open({ words: "  my keys ", exemplar: null });
-        const result = await hunts.read(hunt, FRAME);
+        const hunt = hunts.open("  my keys ", null);
+        const { reading } = await hunts.read(hunt, FRAME);
 
-        expect(result.reading).toEqual(READING);
+        expect(reading).toEqual(READING);
         expect(asked).toEqual([{ words: "my keys", exemplar: null }]);
     });
 
@@ -35,8 +35,8 @@ describe("Hunts", () => {
         const hunts = createHunts({ judge, budgetUsd: 1 });
         const sock = png(400, 400);
 
-        const keys = hunts.open({ words: "my keys", exemplar: null });
-        const socks = hunts.open({ words: null, exemplar: sock });
+        const keys = hunts.open("my keys", null);
+        const socks = hunts.open(null, sock);
         await hunts.read(socks, FRAME);
         await hunts.read(keys, FRAME);
 
@@ -48,7 +48,7 @@ describe("Hunts", () => {
 
     it("says what has been spent, at Jev's price of $0.042 per million tokens", async () => {
         const hunts = createHunts({ judge: seeingJudge(1_000_000).judge, budgetUsd: 1 });
-        const hunt = hunts.open({ words: "my keys", exemplar: null });
+        const hunt = hunts.open("my keys", null);
 
         await hunts.read(hunt, FRAME);
         const second = await hunts.read(hunt, FRAME);
@@ -59,8 +59,8 @@ describe("Hunts", () => {
 
     it("stops reading once the Budget is spent, across all Hunts", async () => {
         const hunts = createHunts({ judge: seeingJudge(1_000_000).judge, budgetUsd: 0.05 });
-        const first = hunts.open({ words: "my keys", exemplar: null });
-        const second = hunts.open({ words: "my wallet", exemplar: null });
+        const first = hunts.open("my keys", null);
+        const second = hunts.open("my wallet", null);
 
         await hunts.read(first, FRAME); // $0.042
         await hunts.read(second, FRAME); // $0.084: over
@@ -71,14 +71,20 @@ describe("Hunts", () => {
     it("refuses a Hunt without a Target", () => {
         const hunts = createHunts({ judge: seeingJudge().judge, budgetUsd: 1 });
 
-        expect(() => hunts.open({ words: "   ", exemplar: null })).toThrowError(HuntError);
-        expect(() => hunts.open({ words: null, exemplar: null })).toThrowError(expect.objectContaining({ kind: "no_target" }));
+        expect(() => hunts.open("   ", null)).toThrowError(HuntError);
+        expect(() => hunts.open(null, null)).toThrowError(expect.objectContaining({ kind: "no_target" }));
+    });
+
+    it("refuses words that are nothing but backticks and spaces", () => {
+        const hunts = createHunts({ judge: seeingJudge().judge, budgetUsd: 1 });
+
+        expect(() => hunts.open(" `` ` ", null)).toThrowError(expect.objectContaining({ kind: "no_target" }));
     });
 
     it("refuses words longer than 200 characters", () => {
         const hunts = createHunts({ judge: seeingJudge().judge, budgetUsd: 1 });
 
-        expect(() => hunts.open({ words: "x".repeat(201), exemplar: null })).toThrowError(expect.objectContaining({ kind: "words_too_long" }));
+        expect(() => hunts.open("x".repeat(201), null)).toThrowError(expect.objectContaining({ kind: "words_too_long" }));
     });
 
     it("does not know a Hunt it never opened", async () => {
@@ -89,8 +95,8 @@ describe("Hunts", () => {
 
     it("forgets the oldest Hunt beyond the 20 it keeps", async () => {
         const hunts = createHunts({ judge: seeingJudge().judge, budgetUsd: 1 });
-        const first = hunts.open({ words: "my keys", exemplar: null });
-        for (let i = 0; i < 20; i += 1) hunts.open({ words: `thing ${i}`, exemplar: null });
+        const first = hunts.open("my keys", null);
+        for (let i = 0; i < 20; i += 1) hunts.open(`thing ${i}`, null);
 
         await expect(hunts.read(first, FRAME)).rejects.toMatchObject({ kind: "unknown_hunt" });
     });

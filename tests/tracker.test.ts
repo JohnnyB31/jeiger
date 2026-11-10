@@ -38,7 +38,6 @@ describe("a Hunt's Bearing", () => {
         const state = track(untracked, reading(0.9, FAR_RIGHT), 0);
         expect(state.bearing?.x).toBeCloseTo(0.8);
         expect(state.bearing?.y).toBeCloseTo(0);
-        expect(state.bearing?.size).toBeCloseTo(0.04);
     });
 
     it("points up for a box at the top of the Frame", () => {

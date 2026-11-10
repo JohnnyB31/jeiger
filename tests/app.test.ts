@@ -1,5 +1,5 @@
 import { createServer, type Server } from "node:http";
-import type { AddressInfo } from "node:net";
+import { type AddressInfo, connect } from "node:net";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/server/app.ts";
 import { type FakeJev, startFakeJev } from "../src/server/fake-jev.ts";
@@ -19,7 +19,7 @@ let url: string;
 
 async function start(budgetUsd = 1) {
     const hunts = createHunts({ judge: jevJudge({ apiKey: "test-key", baseUrl: jev.url }), budgetUsd });
-    server = createServer(createApp({ hunts, simulated: false, budgetUsd }));
+    server = createServer(createApp({ hunts, fakeJev: false }));
     await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
     url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 }
@@ -56,7 +56,6 @@ describe("the Jeiger server", () => {
         expect(await response.json()).toEqual({
             reading: { visible: 0.85, box: BOX, boxConfidence: 0.7 },
             spent: { inputTokens: expect.any(Number), usd: expect.any(Number) },
-            model: "jev-1.14.0",
         });
         expect(jev.requests[0]?.questions.where?.instructions).toBe("my keys in `frame`");
     });
@@ -134,10 +133,32 @@ describe("the Jeiger server", () => {
         expect(error.message).toMatch(/280/);
     });
 
+    it("answers 503 when Jev itself fails, so the Hunt goes on", async () => {
+        const { id } = await (await openHunt({ words: "my keys" })).json();
+        jev.failNext(500);
+
+        expect((await sendFrame(id)).status).toBe(503);
+        expect((await sendFrame(id)).status).toBe(200);
+    });
+
+    it("survives a request line that is not a URL", async () => {
+        const { port } = server.address() as AddressInfo;
+        const answer = await new Promise<string>((resolve, reject) => {
+            const socket = connect(port, "127.0.0.1", () => socket.write("GET // HTTP/1.1\r\nHost: jeiger\r\nConnection: close\r\n\r\n"));
+            let received = "";
+            socket.on("data", (chunk) => (received += chunk));
+            socket.on("end", () => resolve(received));
+            socket.on("error", reject);
+        });
+
+        expect(answer).toMatch(/^HTTP\/1\.1 400 /);
+        expect((await fetch(`${url}/api/config`)).status).toBe(200);
+    });
+
     it("tells the page how it is set up", async () => {
         const response = await fetch(`${url}/api/config`);
 
-        expect(await response.json()).toEqual({ simulated: false, budgetUsd: 1, maxWords: 200 });
+        expect(await response.json()).toEqual({ fakeJev: false, budgetUsd: 1, maxWords: 200 });
     });
 
     it("serves the page", async () => {

@@ -1,8 +1,8 @@
 /**
  * Starts Jeiger.
  *
- *   TYPESAFE_API_KEY    the Jev API key. Without it, pass --simulate.
- *   --simulate          use the Fake Jev: no key, no cost, a made-up Target.
+ *   TYPESAFE_API_KEY    the Jev API key. Without it, pass --fake-jev.
+ *   --fake-jev          use the Fake Jev: no key, no cost, a made-up Target.
  *   PORT                default 4747
  *   JEIGER_BUDGET_USD   the Budget, default 0.25
  *   JEV_MODEL           default jev-1.14.0
@@ -13,9 +13,9 @@ import { startFakeJev } from "./fake-jev.ts";
 import { createHunts } from "./hunts.ts";
 import { JEV_MODEL, jevJudge } from "./judge.ts";
 
-const simulated = process.argv.includes("--simulate");
+const fakeJev = process.argv.includes("--fake-jev");
 const apiKey = process.env.TYPESAFE_API_KEY;
-if (!simulated && !apiKey) {
+if (!fakeJev && !apiKey) {
     console.error("Set TYPESAFE_API_KEY to hunt with Jev, or run `npm run demo` to try Jeiger with a made-up Target.");
     process.exit(1);
 }
@@ -26,12 +26,12 @@ if (!Number.isFinite(budgetUsd) || budgetUsd < 0) {
     process.exit(1);
 }
 
-const judge = simulated
+const judge = fakeJev
     ? jevJudge({ apiKey: "fake", baseUrl: (await startFakeJev()).url })
     : jevJudge({ apiKey: apiKey!, model: process.env.JEV_MODEL ?? JEV_MODEL });
 
 const port = Number(process.env.PORT ?? 4747);
-createServer(createApp({ hunts: createHunts({ judge, budgetUsd }), simulated, budgetUsd })).listen(port, () => {
-    console.log(`Jeiger is listening on http://localhost:${port}${simulated ? " (simulated Judge)" : ""}`);
+createServer(createApp({ hunts: createHunts({ judge, budgetUsd }), fakeJev })).listen(port, () => {
+    console.log(`Jeiger is listening on http://localhost:${port}${fakeJev ? " (Fake Jev: nothing looks at the camera)" : ""}`);
     console.log("A browser gives a page the camera only on localhost or over HTTPS.");
 });

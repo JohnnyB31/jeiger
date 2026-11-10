@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { clickRate, clickVoice, clicksNow } from "../src/core/clicker.ts";
 
 describe("the Click rate", () => {
-    it("ticks over slowly with no Heat, like background radiation", () => {
+    it("is slow with no Heat, like background radiation", () => {
         expect(clickRate(0)).toBeCloseTo(0.5);
     });
 
@@ -52,16 +52,16 @@ describe("how a Click sounds", () => {
     });
 
     it("pans with the Bearing's left and right", () => {
-        expect(clickVoice({ x: -0.8, y: 0, size: 0.1 }).pan).toBeCloseTo(-0.8);
+        expect(clickVoice({ x: -0.8, y: 0 }).pan).toBeCloseTo(-0.8);
     });
 
     it("rises an octave at the top of the view and falls one at the bottom", () => {
-        expect(clickVoice({ x: 0, y: 1, size: 0.1 }).frequency).toBeCloseTo(2400);
-        expect(clickVoice({ x: 0, y: -1, size: 0.1 }).frequency).toBeCloseTo(600);
+        expect(clickVoice({ x: 0, y: 1 }).frequency).toBeCloseTo(2400);
+        expect(clickVoice({ x: 0, y: -1 }).frequency).toBeCloseTo(600);
     });
 
     it("keeps the pan inside what a stereo panner accepts", () => {
-        expect(clickVoice({ x: 1.4, y: 0, size: 0.1 }).pan).toBe(1);
+        expect(clickVoice({ x: 1.4, y: 0 }).pan).toBe(1);
     });
 });
 
