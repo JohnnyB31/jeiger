@@ -6,7 +6,9 @@ Type "my keys" (or show a photo of one sock), press Hunt, and sweep a camera aro
 
 ![Jeiger locked onto a Target](docs/locked.png)
 
-This is a first prototype.
+**Status:** a working prototype, built to try out the image input of TypeSafe's Jev model. It is an independent project, not made or endorsed by TypeSafe. Expect rough edges, and see [What has and has not been tested](#what-has-and-has-not-been-tested) before relying on it.
+
+**Contents:** [Why this suits Jev](#why-this-suits-jev) · [Run it](#run-it) · [On a phone](#on-a-phone) · [Privacy and cost](#privacy-and-cost) · [What has and has not been tested](#what-has-and-has-not-been-tested) · [How it works](#how-it-works) · [Where it could go](#where-it-could-go) · [Contributing](#contributing) · [License](#license)
 
 ## Why this suits Jev
 
@@ -25,16 +27,18 @@ Three properties of Jev carry the idea:
 
 ## Run it
 
-Needs Node 22.18 or newer.
+Needs Node 22.18 or newer, and a browser with a camera.
 
 ```bash
+git clone https://github.com/JohnnyB31/jeiger.git
+cd jeiger
 npm install
 npm run demo          # no API key: a made-up Target, to see and hear the counter
 ```
 
 Open <http://localhost:4747>, type what to look for, press Hunt, and allow the camera. The demo runs on the Fake Jev: nothing looks at the camera, and a made-up Target drifts through the view so the counter passes through cold, warm, hot and locked.
 
-With a key from TypeSafe:
+To hunt for real you need an API key from [TypeSafe](https://docs.typesafe.ai), whose image input is opt-in and experimental. With the key:
 
 ```bash
 TYPESAFE_API_KEY=... npm start
@@ -68,12 +72,19 @@ Two things to know:
 
 This has been checked in desktop Chromium only (it reads the manifest and reports nothing missing for installing). It has not been tried on a real phone.
 
+## Privacy and cost
+
+- **Camera frames leave your machine.** While a Hunt is on, each frame (and the photo of the Target, if you gave one) is sent to your Jeiger server and from there to TypeSafe's API. Nothing is sent when no Hunt is on, and Stop turns the camera off. Jeiger itself stores no frames: the photo of the Target is held in memory until the server restarts.
+- **Your key stays on the server.** The page never receives it. Keep it in the environment or in `.env`, which git ignores.
+- **Hunting costs money on your TypeSafe account.** One request per frame, as fast as Jev answers. The Budget (`JEIGER_BUDGET_USD`, $0.25 by default) stops a running server once it has spent that much; restarting the server starts the count again.
+- **There is no login.** If you put Jeiger on an address other people can reach, they can spend your Budget. See [On a phone](#on-a-phone).
+
 ## What has and has not been tested
 
 - `npm test` covers the tracking and click logic, the Jev request and answer handling, the Budget, and the server over real HTTP. `npm run typecheck` checks the types, the page's code included.
 - `node scripts/browser-check.cjs` drives the page in headless Chromium with a fake camera through a whole Hunt, down to the locked Phase and Stop. It needs Playwright, which is not in `package.json` (the script says how to get it). The page has no other tests.
-- **Jev itself has not been called.** There was no API key when this was built, so every test runs against a Fake Jev that enforces Jev's documented request rules (`src/server/fake-jev.ts`). The first run with a real key is the first real test; [ADR 0001](docs/adr/0001-jev-is-called-over-plain-http-and-has-not-been-called-for-real.md) lists what was guessed.
-- So nothing here says how *well* Jev finds things, or how fast it answers. TypeSafe itself calls image input "Dreamer-ready", not production-ready.
+- **No automated test calls the real Jev.** Every test runs against a Fake Jev that enforces Jev's documented request rules (`src/server/fake-jev.ts`), so the tests need no key and cost nothing. Jeiger was built from Jev's documentation before a key was at hand; [ADR 0001](docs/adr/0001-jev-is-called-over-plain-http-and-has-not-been-called-for-real.md) records what that left open. It has since been run by hand with a real key.
+- **Nothing here measures how well it finds things.** There are no figures for how often Jev is right about a Target, how tight its boxes are, or how fast it answers. TypeSafe itself calls image input "Dreamer-ready", not production-ready, and says its format and accuracy can change between releases.
 
 ## How it works
 
@@ -108,3 +119,23 @@ The words used here (Hunt, Target, Exemplar, Frame, Reading, Heat, Bearing, Phas
 - **Several Targets at once.** One request can carry many questions, so "keys, wallet, glasses" could each have their own click sound.
 - **A hazard sweep.** "Anything a toddler could swallow" works as a Target as it stands; a mode that logs each find with its frame would make it a checklist.
 - **Short frame history.** Jev accepts several frames in one request, so "is it getting closer?" is askable.
+
+## Contributing
+
+Issues and pull requests are welcome. Before opening a pull request, run:
+
+```bash
+npm test
+npm run typecheck
+```
+
+Two things that help a change fit in:
+
+- [CONTEXT.md](CONTEXT.md) is the project's vocabulary. Code, tests and messages use those words (a Hunt, a Frame, a Reading), and avoid the ones it lists as avoided.
+- [docs/adr](docs/adr) holds the decisions a newcomer would otherwise question, such as why there is no build step and why Jev is called over plain HTTP.
+
+## License
+
+[MIT](LICENSE): free to use, change and share, including commercially, as long as the copyright notice stays with it. It comes with no warranty.
+
+Jev and TypeSafe are names of TypeSafe AI's products and company; this project only uses their public API.

@@ -2,6 +2,7 @@
   "name": "jeiger",
   "version": "0.0.1",
   "private": true,
+  "license": "MIT",
   "description": "A Geiger counter for anything you can name, on TypeSafe Jev's image input.",
   "type": "module",
   "engines": {
