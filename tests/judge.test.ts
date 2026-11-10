@@ -19,7 +19,6 @@ describe("the Jev Judge", () => {
         const sighting = await judge().read({ words: "the coffee mug", exemplar: null }, FRAME);
 
         expect(sighting.reading).toEqual({ visible: 0.9, box: MUG, boxConfidence: 0.92 });
-        expect(sighting.model).toBe("jev-1.14.0");
         expect(sighting.inputTokens).toBeGreaterThan(0);
     });
 

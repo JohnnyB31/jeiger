@@ -66,6 +66,23 @@ describe("a Hunt's Bearing", () => {
         expect(unknown.bearing!.x).toBeCloseTo(middling.bearing!.x);
     });
 
+    it("still follows a box the Judge gives no confidence at all", () => {
+        const start = track(untracked, reading(0.9, CENTRE), 0);
+        const moved = track(start, reading(0.9, FAR_RIGHT, 0), 200);
+        expect(moved.bearing!.x).toBeGreaterThan(0);
+    });
+
+    it("waits for the Heat to rise before believing a hot Reading that follows cold ones", () => {
+        let state = track(untracked, reading(0), 0);
+        state = track(state, reading(0.9, FAR_RIGHT), 150);
+        expect(state.heat).toBeLessThan(0.5);
+        expect(state.bearing).toBeNull();
+
+        for (const at of [300, 450, 600]) state = track(state, reading(0.9, FAR_RIGHT), at);
+        expect(state.heat).toBeGreaterThan(0.5);
+        expect(state.bearing?.x).toBeCloseTo(0.8);
+    });
+
     it("is dropped once the Heat has faded", () => {
         const state = track(untracked, reading(0.9, FAR_RIGHT), 0);
         expect(settle(state, 1000).bearing).not.toBeNull();
@@ -97,6 +114,13 @@ describe("a Hunt's Phase", () => {
         const one = track(untracked, reading(0.95, FAR_RIGHT), 0);
         const two = track(one, reading(0.95, FAR_RIGHT), 200);
         expect(two.phase).toBe("hot");
+    });
+
+    it("lets go of the lock on the first Reading that puts the Target off-centre, however unsure its box", () => {
+        const one = track(untracked, reading(0.95, CENTRE), 0);
+        const two = track(one, reading(0.95, CENTRE), 200);
+        const three = track(two, reading(0.95, FAR_RIGHT, 0), 400);
+        expect(three.phase).toBe("hot");
     });
 
     it("lets go of the lock when Readings stop", () => {

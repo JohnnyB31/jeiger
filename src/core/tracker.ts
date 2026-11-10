@@ -10,7 +10,12 @@
  *
  * Times are milliseconds on any one clock. A Reading's box is believed only
  * when that Reading says the Target is probably visible: Jev answers a Box
- * question with a box even when the Target is absent.
+ * question with a box even when the Target is absent. And there is a Bearing
+ * only while the Heat says so too, so one stray hot Reading points nowhere.
+ *
+ * The Bearing is smoothed, for the sound. Locking is not: it looks at each
+ * Reading's own box, so the lock lets go the moment the Target leaves the
+ * centre, however slowly the Bearing follows.
  */
 
 /** Edges as fractions of the Frame, measured from its top-left corner. */
@@ -58,6 +63,8 @@ const LOCK_HEAT = 0.8;
 const CENTRED_WITHIN = 0.25;
 const LOCK_AFTER_READINGS = 2;
 const UNKNOWN_CONFIDENCE = 0.5;
+/** How much of a box the Bearing follows even when the Judge gives it no confidence, so it cannot freeze. */
+const LEAST_TRUST = 0.2;
 
 export function track(state: Tracked, reading: Reading, atMs: number): Tracked {
     const before = settle(state, atMs);
@@ -65,24 +72,24 @@ export function track(state: Tracked, reading: Reading, atMs: number): Tracked {
 
     const heat = elapsed === null ? reading.visible : approach(before.heat, reading.visible, elapsed, HEAT_HALF_LIFE_MS);
 
+    const seen = isBelieved(reading) ? bearingOf(reading.box) : null;
     let bearing: Bearing | null;
-    if (isBelieved(reading)) {
-        const seen = bearingOf(reading.box);
-        if (before.bearing === null || elapsed === null) {
-            bearing = seen;
-        } else {
-            const trust = reading.boxConfidence ?? UNKNOWN_CONFIDENCE;
-            const pull = trust * approach(0, 1, elapsed, BEARING_HALF_LIFE_MS);
-            bearing = {
-                x: before.bearing.x + pull * (seen.x - before.bearing.x),
-                y: before.bearing.y + pull * (seen.y - before.bearing.y),
-            };
-        }
+    if (heat < BELIEVE) {
+        bearing = null;
+    } else if (seen === null) {
+        bearing = before.bearing;
+    } else if (before.bearing === null || elapsed === null) {
+        bearing = seen;
     } else {
-        bearing = heat >= BELIEVE ? before.bearing : null;
+        const trust = LEAST_TRUST + (1 - LEAST_TRUST) * (reading.boxConfidence ?? UNKNOWN_CONFIDENCE);
+        const pull = trust * approach(0, 1, elapsed, BEARING_HALF_LIFE_MS);
+        bearing = {
+            x: before.bearing.x + pull * (seen.x - before.bearing.x),
+            y: before.bearing.y + pull * (seen.y - before.bearing.y),
+        };
     }
 
-    const centred = isBelieved(reading) && bearing !== null && isCentred(bearing);
+    const centred = bearing !== null && seen !== null && isCentred(seen);
     const centredRun = centred ? before.centredRun + 1 : 0;
     return { heat, bearing, centredRun, readAt: atMs, phase: phaseOf(heat, centredRun) };
 }

@@ -20,7 +20,7 @@ This is a first prototype. It is a standalone folder: it shares no code, depende
 Three properties of Jev carry the idea:
 
 - **The answer is a number, not a sentence.** A probability can drive a click rate directly, and can be smoothed over time like any sensor signal.
-- **It is cheap enough to ask continuously.** Input costs $0.042 per million tokens and output is free, so several frames a second is affordable. How many tokens a picture costs is not published yet; the page shows what a Hunt has spent.
+- **It is cheap enough to ask continuously.** Input costs $0.042 per million tokens and output is free, so several frames a second is affordable. How many tokens a picture costs is not published yet; the page shows what the running server has spent so far.
 - **A picture can go inside the question.** "Find the thing shown in this photo" needs no words at all, which is what the Photo button does.
 
 ## Run it
@@ -33,7 +33,7 @@ npm install
 npm run demo          # no API key: a made-up Target, to see and hear the counter
 ```
 
-Open <http://localhost:4747>, allow the camera, and press Hunt. The demo runs on the Fake Jev: nothing looks at the camera, and a made-up Target drifts through the view so the counter passes through cold, warm, hot and locked.
+Open <http://localhost:4747>, type what to look for, press Hunt, and allow the camera. The demo runs on the Fake Jev: nothing looks at the camera, and a made-up Target drifts through the view so the counter passes through cold, warm, hot and locked.
 
 With a key from TypeSafe:
 
@@ -47,6 +47,8 @@ TYPESAFE_API_KEY=... npm start
 | `JEIGER_BUDGET_USD` | `0.25` | The Budget: once one running server has spent this much on Jev, Hunts stop. |
 | `JEV_MODEL` | `jev-1.14.0` | Box questions need Jev 1.14. |
 | `PORT` | `4747` | |
+
+A laptop's webcam faces you, so the picture is shown mirrored and left and right are swapped to match. Jeiger assumes that for any camera that does not say it faces away; the Mirror switch turns it off.
 
 **On a phone:** a browser gives a page the camera only on `localhost` or over HTTPS, so opening the laptop's address from a phone will not work as it is. Put an HTTPS tunnel in front of the port, or run it on a laptop with a webcam first.
 

@@ -3,7 +3,7 @@
  *
  *   POST /api/hunts                 form fields `words` and/or `exemplar` (a PNG or JPEG file) -> 201 {id}
  *   POST /api/hunts/:id/readings    body: one Frame, a PNG or JPEG                              -> 200 HuntReading
- *   GET  /api/config                                                                            -> {fakeJev, budgetUsd, maxWords}
+ *   GET  /api/config                                                                            -> {fakeJev, budgetUsd, maxWords}; budgetUsd is null when there is no Budget
  *
  * A failure is `{error: {code, message}}`; `message` is written for the person
  * holding the camera. 503 `judge_busy` means "send the next Frame later".
@@ -67,7 +67,8 @@ export function createApp(options: AppOptions): RequestListener {
             // Inside the try: a request line such as `GET //` is not a URL, and parsing it throws.
             const { pathname } = new URL(request.url ?? "/", "http://jeiger");
             if (request.method === "GET" && pathname === "/api/config") {
-                return json(200, { fakeJev: options.fakeJev, budgetUsd: options.hunts.budgetUsd, maxWords: MAX_WORDS });
+                const { budgetUsd } = options.hunts;
+                return json(200, { fakeJev: options.fakeJev, budgetUsd: Number.isFinite(budgetUsd) ? budgetUsd : null, maxWords: MAX_WORDS });
             }
             if (request.method === "POST" && pathname === "/api/hunts") {
                 const form = await formOf(request);

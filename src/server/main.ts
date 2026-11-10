@@ -29,9 +29,11 @@ if (!Number.isFinite(budgetUsd) || budgetUsd < 0) {
 const judge = fakeJev
     ? jevJudge({ apiKey: "fake", baseUrl: (await startFakeJev()).url })
     : jevJudge({ apiKey: apiKey!, model: process.env.JEV_MODEL ?? JEV_MODEL });
+// The Fake Jev's token counts are invented and nobody pays for them: no Budget.
+const hunts = createHunts({ judge, budgetUsd: fakeJev ? Infinity : budgetUsd });
 
 const port = Number(process.env.PORT ?? 4747);
-createServer(createApp({ hunts: createHunts({ judge, budgetUsd }), fakeJev })).listen(port, () => {
+createServer(createApp({ hunts, fakeJev })).listen(port, () => {
     console.log(`Jeiger is listening on http://localhost:${port}${fakeJev ? " (Fake Jev: nothing looks at the camera)" : ""}`);
     console.log("A browser gives a page the camera only on localhost or over HTTPS.");
 });

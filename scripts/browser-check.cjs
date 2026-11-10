@@ -40,6 +40,7 @@ async function main() {
             boxShown: !document.getElementById("box").hidden,
             button: document.getElementById("hunt").textContent,
             status: document.getElementById("status").textContent,
+            cameraOn: document.getElementById("camera").srcObject !== null,
         }));
 
         await page.goto(URL);
@@ -48,7 +49,8 @@ async function main() {
         await page.fill("#words", "   ");
         await page.click("#hunt");
         await page.waitForFunction(() => document.getElementById("status").textContent !== "");
-        check((await hunt()).button === "Hunt", "a Hunt without a Target does not start");
+        const refused = await hunt();
+        check(refused.button === "Hunt" && !refused.cameraOn, "a Hunt without a Target does not start, and the camera stays off");
 
         // A Hunt passes through every Phase, and shows a box only while it believes one.
         await page.fill("#words", "my keys");
@@ -76,6 +78,7 @@ async function main() {
         const later = await hunt();
         check(later.readings === stopped.readings, "no Frame is sent after Stop");
         check(later.phase === "cold" && !later.boxShown && later.button === "Hunt", "the counter is cold after Stop");
+        check(!later.cameraOn, "the camera is off after Stop");
 
         check(problems.length === 0, `no errors on the page (${problems.join("; ") || "none"})`);
     } finally {

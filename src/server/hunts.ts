@@ -29,6 +29,7 @@ export class HuntError extends Error {
 }
 
 export type Hunts = {
+    /** Infinity when there is no Budget. */
     readonly budgetUsd: number;
     /**
      * Opens a Hunt for what the person typed and the photo they showed, and

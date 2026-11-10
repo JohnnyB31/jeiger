@@ -39,6 +39,13 @@ const voiceSwitch = $<HTMLInputElement>("voice");
 const mirrorSwitch = $<HTMLInputElement>("mirror");
 const lamp = $("lamp");
 
+/** How the server is set up: {fakeJev, budgetUsd (null for no Budget), maxWords}. */
+const config = await (await fetch("/api/config")).json();
+
+function dollars(amount: number, decimals: number): string {
+    return "$" + amount.toFixed(decimals);
+}
+
 let tracked: Tracked = untracked;
 /** The id of the Hunt that is on, or null. A loop stops when this is no longer its Hunt. */
 let huntId: string | null = null;
@@ -63,10 +70,10 @@ $<HTMLFormElement>("target").addEventListener("submit", async (event) => {
 });
 
 async function start(): Promise<void> {
-    // Both need the button press: a browser gives sound and camera to a page only after a gesture.
+    // First, while this is still the button press: a browser lets a page make sound only after a gesture.
     startSound();
-    await startCamera();
 
+    // The Hunt before the camera, so that a missing Target is said before the browser asks for the camera.
     const form = new FormData();
     form.set("words", words.value);
     const photo = exemplarInput.files?.[0];
@@ -74,6 +81,7 @@ async function start(): Promise<void> {
     const response = await fetch("/api/hunts", { method: "POST", body: form });
     const body = await response.json();
     if (!response.ok) throw new Error(body.error.message);
+    await startCamera();
 
     huntId = body.id;
     tracked = untracked;
@@ -91,6 +99,7 @@ function stop(message: string): void {
     huntId = null;
     tracked = untracked;
     shownBox = null;
+    stopCamera();
     huntButton.textContent = "Hunt";
     huntButton.classList.remove("running");
     showStatus(message);
@@ -119,9 +128,17 @@ async function startCamera(): Promise<void> {
     camera.srcObject = stream;
     await camera.play();
     view.style.setProperty("--aspect", `${camera.videoWidth} / ${camera.videoHeight}`);
+    view.style.setProperty("--ratio", String(camera.videoWidth / camera.videoHeight));
     // A camera facing the person (a laptop's) reads naturally only as a mirror.
     mirrorSwitch.checked = stream.getVideoTracks()[0]?.getSettings().facingMode !== "environment";
     applyMirror();
+}
+
+/** No Hunt, no camera: its light goes off with the Stop button. */
+function stopCamera(): void {
+    if (camera.srcObject instanceof MediaStream) camera.srcObject.getTracks().forEach((track) => track.stop());
+    camera.srcObject = null;
+    $("idle").hidden = false;
 }
 
 mirrorSwitch.addEventListener("change", () => {
@@ -161,12 +178,18 @@ async function exemplarFrom(photo: File): Promise<Blob> {
     return jpegOf(bitmap, bitmap.width, bitmap.height, EXEMPLAR_SHORT_SIDE, 0.85);
 }
 
-exemplarInput.addEventListener("change", () => {
+exemplarInput.addEventListener("change", showExemplar);
+$("no-exemplar").addEventListener("click", () => {
+    exemplarInput.value = "";
+    showExemplar();
+});
+function showExemplar(): void {
     const photo = exemplarInput.files?.[0];
     if (thumb.src) URL.revokeObjectURL(thumb.src);
     thumb.hidden = !photo;
-    if (photo) thumb.src = URL.createObjectURL(photo);
-});
+    $("no-exemplar").hidden = !photo;
+    thumb.src = photo ? URL.createObjectURL(photo) : "";
+}
 
 // ─── The reading loop ───────────────────────────────────────────────────────
 
@@ -194,7 +217,7 @@ async function readLoop(id: string): Promise<void> {
                 if (isBelieved(reading)) shownBox = reading.box;
                 if (lastReadingAt !== null) readingsPerSecond = 0.7 * readingsPerSecond + 0.3 * (1000 / (now - lastReadingAt));
                 lastReadingAt = now;
-                $("spent").textContent = body.spent.usd.toFixed(5);
+                if (!config.fakeJev) $("spent").textContent = dollars(body.spent.usd, 5);
                 readingsTaken += 1;
                 gap = MIN_GAP_MS;
                 showStatus("");
@@ -299,7 +322,9 @@ function draw(): void {
     document.documentElement.dataset.readings = String(readingsTaken);
     document.body.classList.toggle("locked", state.phase === "locked");
     $("rate").textContent = (huntId === null ? 0 : clickRate(state.heat)).toFixed(1);
-    $("pace").textContent = (huntId === null ? 0 : readingsPerSecond).toFixed(1);
+    // `settle` leaves a fresh belief as it is, so a changed Heat means the Readings have stopped coming.
+    const readingsArrive = huntId !== null && state.heat === tracked.heat;
+    $("pace").textContent = (readingsArrive ? readingsPerSecond : 0).toFixed(1);
 
     const show = state.bearing !== null && shownBox !== null;
     boxElement.hidden = !show;
@@ -317,7 +342,9 @@ function draw(): void {
 
 // ─── Setting up ─────────────────────────────────────────────────────────────
 
-const config = await (await fetch("/api/config")).json();
 $("fake-jev").hidden = !config.fakeJev;
 words.maxLength = config.maxWords;
+// The Fake Jev's token counts are invented, so there is nothing true to show as spent.
+$("spent").textContent = config.fakeJev ? "nothing" : dollars(0, 5);
+if (config.budgetUsd !== null) $("budget").textContent = `of ${dollars(config.budgetUsd, 2)}`;
 requestAnimationFrame(draw);

@@ -56,9 +56,9 @@ header p { margin: 0; color: var(--dim); font-size: 0.85rem; }
     position: relative;
     overflow: hidden;
     aspect-ratio: var(--aspect, 4 / 3);
-    max-height: 52vh;
+    /* At most about half the window's height, by narrowing: a max-height would break the aspect ratio. */
+    width: min(100%, 52vh * var(--ratio, 1.333));
     margin: 0 auto;
-    width: 100%;
     background: #000;
     border: 2px solid var(--edge);
     border-radius: 10px;
@@ -160,6 +160,8 @@ button, .exemplar {
     cursor: pointer;
 }
 button { color: var(--case); background: var(--warm); border: 0; font-weight: 700; }
+button.quiet { justify-self: start; min-height: 0; padding: 0.2rem 0; color: var(--dim); background: none; font-weight: 400; font-size: 0.8rem; text-decoration: underline; }
+.readout small { color: var(--dim); }
 button.running { background: var(--hot); color: #fff; }
 .exemplar { position: relative; color: var(--text); background: var(--panel); border: 1px solid var(--edge); font-size: 0.8rem; overflow: hidden; }
 .exemplar input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }

@@ -49,13 +49,15 @@
         <div class="row">
             <input id="words" name="words" maxlength="200" placeholder="my keys" autocomplete="off" enterkeyhint="go">
             <label class="exemplar" title="Show a photo of it instead, or as well">
-                <input type="file" id="exemplar" accept="image/*" capture="environment">
+                <input type="file" id="exemplar" accept="image/*">
                 <img id="thumb" alt="The photo of the Target" hidden>
                 <span id="exemplar-label">Photo</span>
             </label>
             <button id="hunt" type="submit">Hunt</button>
         </div>
     </form>
+
+    <button class="quiet" id="no-exemplar" type="button" hidden>Hunt without the photo</button>
 
     <p class="status" id="status" role="status"></p>
 
@@ -68,7 +70,7 @@
     <dl class="readout">
         <div><dt>Clicks</dt><dd><span id="rate">0.5</span> /s</dd></div>
         <div><dt>Readings</dt><dd><span id="pace">0.0</span> /s</dd></div>
-        <div><dt>Spent</dt><dd>$<span id="spent">0.00000</span></dd></div>
+        <div><dt>Spent</dt><dd><span id="spent"></span> <small id="budget"></small></dd></div>
     </dl>
 </main>
 <script type="module" src="/web/app.ts"></script>

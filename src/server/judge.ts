@@ -35,8 +35,6 @@ export type Sighting = {
     reading: Reading;
     /** What the request cost, in Jev input tokens (output tokens are free). */
     inputTokens: number;
-    /** The versioned model that answered. */
-    model: string;
 };
 
 export type Judge = { read(target: Target, frame: Picture): Promise<Sighting> };
@@ -175,12 +173,11 @@ function sightingIn(body: unknown): Sighting {
     // The API reference allows a null confidence; the Box guide does not mention it.
     const confidence = where.confidence ?? null;
     if (confidence !== null && !isFraction(confidence)) throw broken();
-    if (typeof body.usage.input_tokens !== "number" || typeof body.model !== "string") throw broken();
+    if (typeof body.usage.input_tokens !== "number") throw broken();
 
     return {
         reading: { visible: visible.noul, box: { top, bottom, left, right }, boxConfidence: confidence },
         inputTokens: body.usage.input_tokens,
-        model: body.model,
     };
 }
 

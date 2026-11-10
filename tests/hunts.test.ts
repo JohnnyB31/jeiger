@@ -12,7 +12,7 @@ function seeingJudge(inputTokens = 1_000_000) {
     const judge: Judge = {
         async read(target) {
             asked.push(target);
-            return { reading: READING, inputTokens, model: "jev-1.14.0" };
+            return { reading: READING, inputTokens };
         },
     };
     return { judge, asked };
