@@ -1,0 +1,21 @@
+{
+  "name": "jeiger",
+  "version": "0.0.1",
+  "private": true,
+  "description": "A Geiger counter for anything you can name, on TypeSafe Jev's image input.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "start": "node src/server/main.ts",
+    "demo": "node src/server/main.ts --simulate",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  }
+}

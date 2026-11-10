@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#14160f">
+<title>Jeiger</title>
+<link rel="stylesheet" href="/web/style.css">
+</head>
+<body>
+<main class="jeiger">
+    <header>
+        <h1>Jeiger</h1>
+        <p>A Geiger counter for anything you can name.</p>
+    </header>
+
+    <p class="notice" id="simulated" hidden>
+        Simulated Judge: nothing looks at the camera, and the Target is made up.
+        Start Jeiger with <code>TYPESAFE_API_KEY</code> to hunt for real.
+    </p>
+
+    <div class="view" id="view">
+        <video id="camera" playsinline muted></video>
+        <div class="crosshair" aria-hidden="true"></div>
+        <div class="box" id="box" hidden></div>
+        <p class="idle" id="idle">Name something, press Hunt, and sweep the camera around.</p>
+    </div>
+
+    <section class="meter" aria-label="Counter">
+        <svg class="dial" viewBox="0 0 200 122" role="img" aria-labelledby="dial-title">
+            <title id="dial-title">Heat</title>
+            <path class="zone cold" d="M26.39 67.5 A85 85 0 0 1 57.5 36.39"/>
+            <path class="zone warm" d="M57.5 36.39 A85 85 0 0 1 117.67 26.86"/>
+            <path class="zone hot" d="M117.67 26.86 A85 85 0 0 1 173.61 67.5"/>
+            <text x="30" y="52" transform="rotate(-45 30 52)">COLD</text>
+            <text x="84" y="19" transform="rotate(-9 84 19)">WARM</text>
+            <text x="154" y="33" transform="rotate(36 154 33)">HOT</text>
+            <line class="needle" id="needle" x1="100" y1="110" x2="100" y2="34"/>
+            <circle class="hub" cx="100" cy="110" r="7"/>
+        </svg>
+        <div class="lamps">
+            <span class="lamp" id="lamp" aria-hidden="true"></span>
+            <output id="phase">cold</output>
+        </div>
+    </section>
+
+    <form id="target">
+        <label for="words">What are you looking for?</label>
+        <div class="row">
+            <input id="words" name="words" maxlength="200" placeholder="my keys" autocomplete="off" enterkeyhint="go">
+            <label class="exemplar" title="Show a photo of it instead, or as well">
+                <input type="file" id="exemplar" accept="image/*" capture="environment">
+                <img id="thumb" alt="The photo of the Target" hidden>
+                <span id="exemplar-label">Photo</span>
+            </label>
+            <button id="hunt" type="submit">Hunt</button>
+        </div>
+    </form>
+
+    <p class="status" id="status" role="status"></p>
+
+    <div class="switches">
+        <label><input type="checkbox" id="sound" checked> Clicks</label>
+        <label><input type="checkbox" id="voice"> Spoken cues</label>
+        <label><input type="checkbox" id="mirror"> Mirror</label>
+    </div>
+
+    <dl class="readout">
+        <div><dt>Clicks</dt><dd><span id="rate">0.5</span> /s</dd></div>
+        <div><dt>Readings</dt><dd><span id="pace">0.0</span> /s</dd></div>
+        <div><dt>Spent</dt><dd>$<span id="spent">0.00000</span></dd></div>
+    </dl>
+</main>
+<script type="module" src="/web/app.ts"></script>
+</body>
+</html>

@@ -1,0 +1,184 @@
+:root {
+    --case: #14160f;
+    --panel: #20231a;
+    --edge: #3a3f2e;
+    --face: #ebe4c9;
+    --ink: #23241c;
+    --text: #dcd7bf;
+    --dim: #96937f;
+    --cold: #5b7d8c;
+    --warm: #d99a1c;
+    --hot: #c8371f;
+    --phosphor: #8dff6a;
+    color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+/* Several elements below set `display`, which would otherwise undo the hidden attribute. */
+[hidden] { display: none !important; }
+
+body {
+    margin: 0;
+    background: var(--case);
+    color: var(--text);
+    font: 16px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+.jeiger {
+    max-width: 34rem;
+    margin: 0 auto;
+    padding: 1rem;
+    display: grid;
+    gap: 0.9rem;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+}
+header p { margin: 0; color: var(--dim); font-size: 0.85rem; }
+
+.notice {
+    margin: 0;
+    padding: 0.6rem 0.75rem;
+    border: 1px dashed var(--warm);
+    border-radius: 6px;
+    color: var(--warm);
+    font-size: 0.8rem;
+}
+
+/* The camera picture. Its aspect ratio is set from the camera's, so a box
+   given as fractions of the Frame lands on the same fractions of this element. */
+.view {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: var(--aspect, 4 / 3);
+    max-height: 52vh;
+    margin: 0 auto;
+    width: 100%;
+    background: #000;
+    border: 2px solid var(--edge);
+    border-radius: 10px;
+}
+.view video { width: 100%; height: 100%; object-fit: fill; display: block; }
+.view.mirrored video { transform: scaleX(-1); }
+
+.crosshair {
+    position: absolute;
+    /* The middle quarter of the view each way: where a Target counts as centred. */
+    inset: 37.5%;
+    border: 1px solid rgb(255 255 255 / 0.3);
+    border-radius: 8px;
+}
+.locked .crosshair { border-color: var(--phosphor); box-shadow: 0 0 18px var(--phosphor); }
+
+.box {
+    position: absolute;
+    border: 2px solid var(--phosphor);
+    border-radius: 4px;
+    box-shadow: 0 0 10px rgb(141 255 106 / 0.6);
+    transition: left 0.18s linear, top 0.18s linear, width 0.18s linear, height 0.18s linear;
+    pointer-events: none;
+}
+
+.idle {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    padding: 1.5rem;
+    display: grid;
+    place-items: center;
+    text-align: center;
+    color: var(--dim);
+}
+
+.meter {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem 0.5rem;
+    background: var(--panel);
+    border: 1px solid var(--edge);
+    border-radius: 10px;
+}
+
+.dial { width: 100%; max-height: 9.5rem; background: var(--face); border-radius: 8px 8px 4px 4px; }
+.dial .zone { fill: none; stroke-width: 9; }
+.dial .cold { stroke: var(--cold); }
+.dial .warm { stroke: var(--warm); }
+.dial .hot { stroke: var(--hot); }
+.dial text { fill: var(--ink); font-size: 8px; letter-spacing: 0.12em; }
+.dial .needle {
+    stroke: var(--ink);
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    transform-box: view-box;
+    transform-origin: 100px 110px;
+    transform: rotate(var(--angle, -60deg));
+}
+.dial .hub { fill: var(--ink); }
+
+.lamps { display: grid; justify-items: center; gap: 0.4rem; padding-bottom: 0.4rem; min-width: 4.5rem; }
+.lamp {
+    width: 1.4rem;
+    height: 1.4rem;
+    border-radius: 50%;
+    background: #4a2a12;
+    border: 2px solid var(--edge);
+}
+.lamp.lit { background: var(--warm); box-shadow: 0 0 14px var(--warm); }
+#phase { text-transform: uppercase; letter-spacing: 0.15em; font-size: 0.85rem; }
+.locked #phase { color: var(--phosphor); }
+
+form label[for] { display: block; margin-bottom: 0.35rem; font-size: 0.85rem; color: var(--dim); }
+.row { display: flex; gap: 0.5rem; }
+
+input#words {
+    flex: 1;
+    min-width: 0;
+    padding: 0.7rem 0.75rem;
+    font: inherit;
+    color: var(--text);
+    background: var(--panel);
+    border: 1px solid var(--edge);
+    border-radius: 6px;
+}
+
+button, .exemplar {
+    display: grid;
+    place-items: center;
+    padding: 0 0.9rem;
+    min-height: 2.9rem;
+    font: inherit;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border-radius: 6px;
+    cursor: pointer;
+}
+button { color: var(--case); background: var(--warm); border: 0; font-weight: 700; }
+button.running { background: var(--hot); color: #fff; }
+.exemplar { position: relative; color: var(--text); background: var(--panel); border: 1px solid var(--edge); font-size: 0.8rem; overflow: hidden; }
+.exemplar input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.exemplar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.exemplar img:not([hidden]) + span { visibility: hidden; }
+
+:is(button, input, .exemplar:focus-within):focus-visible, .exemplar:focus-within { outline: 2px solid var(--phosphor); outline-offset: 2px; }
+
+.status { margin: 0; min-height: 1.4em; font-size: 0.85rem; color: var(--warm); }
+
+.switches { display: flex; flex-wrap: wrap; gap: 0.4rem 1.25rem; font-size: 0.85rem; }
+.switches label { display: flex; align-items: center; gap: 0.4rem; }
+.switches input { accent-color: var(--warm); width: 1.1rem; height: 1.1rem; }
+
+.readout { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin: 0; }
+.readout div { padding: 0.5rem 0.6rem; background: var(--panel); border: 1px solid var(--edge); border-radius: 6px; }
+.readout dt { font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); }
+.readout dd { margin: 0; font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: reduce) {
+    .box { transition: none; }
+}
