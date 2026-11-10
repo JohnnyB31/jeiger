@@ -1,6 +1,6 @@
 # Jeiger
 
-A Geiger counter for anything you can name: sweep a camera around and the clicks speed up and lean toward the thing you are looking for. It exists to try out the image input of TypeSafe's Jev model. It shares nothing with the shop in the rest of this repository.
+A Geiger counter for anything you can name: sweep a camera around and the clicks speed up and lean toward the thing you are looking for. It exists to try out the image input of TypeSafe's Jev model.
 
 ## Language
 

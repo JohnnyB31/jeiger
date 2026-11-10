@@ -6,7 +6,7 @@ Type "my keys" (or show a photo of one sock), press Hunt, and sweep a camera aro
 
 ![Jeiger locked onto a Target](docs/locked.png)
 
-This is a first prototype. It is a standalone folder: it shares no code, dependencies or checks with the shop in the rest of this repository.
+This is a first prototype.
 
 ## Why this suits Jev
 
@@ -28,7 +28,6 @@ Three properties of Jev carry the idea:
 Needs Node 22.18 or newer.
 
 ```bash
-cd jeiger
 npm install
 npm run demo          # no API key: a made-up Target, to see and hear the counter
 ```
